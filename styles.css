@@ -442,8 +442,8 @@ body.wave-quake .game-shell {
 }
 
 #gameCanvas {
-  width: 960px;
-  height: 600px;
+  width: 1120px;
+  height: 700px;
   flex: 0 0 auto;
   display: block;
   cursor: crosshair;
@@ -509,6 +509,7 @@ body.wave-quake .game-shell {
   padding: 20px 18px 16px;
   text-align: center;
   animation: startCardEnter 0.45s ease-out;
+  position: relative;
 }
 
 @keyframes startCardEnter {
@@ -610,7 +611,7 @@ body.wave-quake .game-shell {
 }
 
 .bonus-guide-panel {
-  margin-top: 10px;
+  margin-top: 0;
   border: 1px solid #449dff;
   background: rgba(4, 10, 25, 0.86);
   padding: 8px;
@@ -620,15 +621,22 @@ body.wave-quake .game-shell {
   opacity: 1;
   transform: translateY(0);
   transition: max-height 0.24s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
+  position: absolute;
+  top: 210px;
+  left: calc(100% + 12px);
+  width: min(42vw, 360px);
+  z-index: 8;
+  box-shadow: 0 0 24px rgba(86, 164, 255, 0.28), inset 0 0 16px rgba(44, 101, 180, 0.24);
 }
 
 .bonus-guide-panel.hidden {
   max-height: 0;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateX(-10px);
   padding-top: 0;
   padding-bottom: 0;
   border-color: rgba(68, 157, 255, 0);
+  width: 0;
 }
 
 .bonus-guide-panel h3 {
@@ -812,5 +820,18 @@ body.wave-quake .game-shell {
   .start-actions {
     grid-template-columns: 1fr;
     max-width: none;
+  }
+
+  .bonus-guide-panel {
+    position: static;
+    width: auto;
+    margin-top: 10px;
+    box-shadow: none;
+    transform: translateY(0);
+  }
+
+  .bonus-guide-panel.hidden {
+    width: auto;
+    transform: translateY(-6px);
   }
 }
