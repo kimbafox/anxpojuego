@@ -463,6 +463,24 @@ function triggerUltimateAttack(now) {
   statusTextEl.textContent = 'Estado: ULTIMO ATAQUE en ejecucion';
 }
 
+function jumpToBoss(now) {
+  if (!state.started) {
+    startGame();
+  }
+
+  state.running = true;
+  state.win = false;
+  state.wave = 10;
+  state.kills = Math.max(state.kills, 270);
+  state.enemies = [];
+  state.enemyBullets = [];
+  state.powerups = [];
+  state.boss = null;
+
+  startWave(10, now || performance.now());
+  statusTextEl.textContent = 'Estado: Salto de prueba al JEFE FINAL';
+}
+
 function playShootSound() {
   if (!sfxContext) {
     return;
@@ -1275,6 +1293,7 @@ function setupInput() {
     hasEffect,
     startGame,
     restartGame,
+    jumpToBoss,
     triggerUltimateAttack,
     fireBullet,
     showPickupBanner,
@@ -2392,6 +2411,9 @@ function tick(now) {
   }
 
   if (state.running) {
+    if (state.wave >= 10 && !state.boss) {
+      spawnBoss();
+    }
     movePlayer(dt);
     updateBullets(dt);
     updateEnemyBullets(dt, now);

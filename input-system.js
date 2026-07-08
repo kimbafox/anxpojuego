@@ -12,6 +12,7 @@
       hasEffect,
       startGame,
       restartGame,
+      jumpToBoss,
       triggerUltimateAttack,
       fireBullet,
       showPickupBanner,
@@ -66,6 +67,13 @@
 
       if (!state.started && key === 'enter') {
         startGame();
+      }
+
+      if (key === 'k') {
+        if (jumpToBoss) {
+          jumpToBoss(performance.now());
+        }
+        e.preventDefault();
       }
 
       if (key === 'q' && state.started && state.running) {
