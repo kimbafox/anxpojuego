@@ -22,6 +22,11 @@ const portraitEl = document.getElementById('portrait');
 const statusTextEl = document.getElementById('statusText');
 const timerEl = document.getElementById('timer');
 
+const bonusQueueHudEl = document.getElementById('bonusQueueHud');
+const menuButtonEl = document.getElementById('menuButton');
+const volumeSliderEl = document.getElementById('volumeSlider');
+const volumeValueEl = document.getElementById('volumeValue');
+
 const { clamp, rand, distSq, makeDistortionCurve } = window.GameUtils;
 const MAX_LIVES = 5;
 const MAP_WIDTH = 1240;
@@ -70,6 +75,7 @@ silalaMusic.volume = 0.16;
 let currentMusicTrack = 'normal';
 
 let sfxContext = null;
+let gameVolume = 0.55; // 0-1, applied to music and SFX
 let kimbaBuffer = null;
 let kimbaPlusBuffer = null;
 let plusMutadoBuffer = null;
@@ -174,6 +180,7 @@ const state = {
   powerups: [],
   boss: null,
   mouse: { x: canvas.width * 0.5, y: canvas.height * 0.5 },
+  mouseHeld: false,
   spawnTimer: 0,
   spawnInterval: 1.15,
   waveTimer: 0,
@@ -470,6 +477,84 @@ function triggerUltimateAttack(now) {
   playUltimoAtaqueAudio();
   showPickupBanner('ULTIMO ATAQUE ACTIVADO (Q)', now);
   statusTextEl.textContent = 'Estado: ULTIMO ATAQUE en ejecucion';
+}
+
+function applyGameVolume() {
+  backgroundMusic.volume = gameVolume * 0.3;
+  silalaMusic.volume = gameVolume * 0.3;
+  if (sfxFxInput) {
+    sfxFxInput.gain.value = clamp(gameVolume * 1.2, 0, 1.5);
+  }
+}
+
+function goToMenu() {
+  state.running = false;
+  state.started = false;
+  state.mouseHeld = false;
+  backgroundMusic.pause();
+  backgroundMusic.currentTime = 0;
+  silalaMusic.pause();
+  silalaMusic.currentTime = 0;
+  currentMusicTrack = 'normal';
+  if (document.pointerLockElement === canvas) {
+    document.exitPointerLock();
+  }
+  document.body.classList.remove('boss-mode', 'navelo-mode', 'voculos-mode', 'kimba-plus-mode', 'ultimate-mode', 'wave-quake');
+  if (startMenuEl) {
+    startMenuEl.classList.remove('hidden');
+  }
+  if (bonusQueueHudEl) {
+    bonusQueueHudEl.classList.add('hidden');
+  }
+}
+
+function getNextRBonuses() {
+  const queue = [];
+  if (state.voculosCharges > 0 && !hasEffect('voculos')) {
+    queue.push({ type: 'voculos', charges: state.voculosCharges });
+  }
+  if (state.pasmorCharges > 0 && !hasEffect('pasmor')) {
+    queue.push({ type: 'pasmor', charges: state.pasmorCharges });
+  }
+  if (state.naveloCharges > 0 && !hasEffect('navelo')) {
+    queue.push({ type: 'navelo', charges: state.naveloCharges });
+  }
+  return queue;
+}
+
+function renderBonusQueueHud() {
+  if (!bonusQueueHudEl) {
+    return;
+  }
+
+  if (!state.started || !state.running) {
+    bonusQueueHudEl.classList.add('hidden');
+    return;
+  }
+
+  const queue = getNextRBonuses();
+  if (queue.length === 0) {
+    bonusQueueHudEl.classList.add('hidden');
+    return;
+  }
+
+  bonusQueueHudEl.classList.remove('hidden');
+  const rows = queue.slice(0, 2).map((entry, idx) => {
+    const def = POWERUP_DEFS[entry.type];
+    const imgSrc = def ? def.src : '';
+    const label = idx === 0 ? 'ACTIVA CON R' : 'SIGUIENTE';
+    const cls = idx === 0 ? 'bq-item' : 'bq-item bq-upcoming';
+    return `<div class="${cls}">
+      <img src="${imgSrc}" alt="${entry.type}">
+      <div class="bq-info">
+        <span class="bq-label">${label}</span>
+        <span class="bq-name">${def ? def.display : entry.type}</span>
+      </div>
+      <span class="bq-count">x${entry.charges}</span>
+    </div>`;
+  });
+
+  bonusQueueHudEl.innerHTML = rows.join('');
 }
 
 function jumpToBoss(now) {
@@ -1318,6 +1403,7 @@ function setupInput() {
     hasEffect,
     startGame,
     restartGame,
+    goToMenu,
     triggerUltimateAttack,
     fireBullet,
     showPickupBanner,
@@ -1338,6 +1424,7 @@ function restartGame() {
   state.wave = 1;
   state.lives = 3;
   state.keys.clear();
+  state.mouseHeld = false;
   state.bullets = [];
   state.enemies = [];
   state.enemyBullets = [];
@@ -2353,9 +2440,9 @@ function drawGameOver() {
 
   ctx.font = '18px Consolas, monospace';
   ctx.fillText(`Puntos finales: ${state.score}`, canvas.width / 2, canvas.height / 2 + 8);
-  ctx.fillText(state.win ? 'Has derrotado al jefe final' : 'Presiona R para reiniciar', canvas.width / 2, canvas.height / 2 + 38);
+  ctx.fillText(state.win ? 'Has derrotado al jefe final' : 'Presiona R para reiniciar · ESC menu', canvas.width / 2, canvas.height / 2 + 38);
   if (state.win) {
-    ctx.fillText('Presiona R para jugar otra vez', canvas.width / 2, canvas.height / 2 + 66);
+    ctx.fillText('Presiona R para jugar otra vez · ESC menu', canvas.width / 2, canvas.height / 2 + 66);
   }
   ctx.restore();
 }
@@ -2432,6 +2519,7 @@ function updateHUD(now) {
   document.body.classList.toggle('boss-mode', Boolean(state.boss));
   bossHpEl.textContent = state.boss ? String(Math.max(0, state.boss.hp)) : '--';
   renderBonusList(now);
+  renderBonusQueueHud();
   updatePortrait(now);
 }
 
@@ -2446,6 +2534,10 @@ function tick(now) {
   last = now;
 
   state.fireCooldown = Math.max(0, state.fireCooldown - dt);
+
+  if (state.running && state.mouseHeld && state.fireCooldown <= 0) {
+    fireBullet(state.mouse.x, state.mouse.y);
+  }
 
   if (state.uiQuakeUntil > 0 && now > state.uiQuakeUntil) {
     state.uiQuakeUntil = 0;
@@ -2512,6 +2604,8 @@ function init() {
   setupInput();
   updatePips();
   renderBonusGuide();
+  applyGameVolume();
+
   if (startButtonEl) {
     startButtonEl.addEventListener('click', startGame);
   }
@@ -2524,6 +2618,21 @@ function init() {
       bonusInfoButtonEl.setAttribute('aria-expanded', hidden ? 'false' : 'true');
     });
   }
+
+  if (menuButtonEl) {
+    menuButtonEl.addEventListener('click', goToMenu);
+  }
+
+  if (volumeSliderEl) {
+    volumeSliderEl.addEventListener('input', () => {
+      gameVolume = Number(volumeSliderEl.value) / 100;
+      if (volumeValueEl) {
+        volumeValueEl.textContent = `${volumeSliderEl.value}%`;
+      }
+      applyGameVolume();
+    });
+  }
+
   statusTextEl.textContent = 'Estado: Esperando inicio';
   requestAnimationFrame(tick);
 }

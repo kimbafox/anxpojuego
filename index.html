@@ -16,7 +16,12 @@
         <img src="assets/anxpo1.png" alt="Anxpo principal">
       </div>
       <p class="start-lead">Sistema listo. Sobrevive a las oleadas y derrota al jefe final.</p>
-      <p class="start-controls">W/A/S/D mover · Click disparar · R bonus · Q ultimo ataque</p>
+      <p class="start-controls">W/A/S/D mover · Mantener click disparar · R bonus · Q ultimo ataque</p>
+      <div class="volume-row">
+        <label for="volumeSlider" class="vol-label">VOLUMEN</label>
+        <input id="volumeSlider" type="range" min="0" max="100" value="55" class="vol-slider">
+        <span id="volumeValue" class="vol-val">55%</span>
+      </div>
       <div class="start-actions">
         <button id="startButton" type="button">EMPEZAR</button>
         <button id="bonusInfoButton" type="button">VER BONUS</button>
@@ -33,11 +38,12 @@
       <div id="megaBonusBanner" class="mega-bonus-banner" aria-live="assertive"></div>
       <div id="pickupBanner" class="pickup-banner" aria-live="polite"></div>
       <div id="waveProgressCounter" class="wave-progress-counter">FALTAN 30 PARA OLEADA 2</div>
+      <div id="bonusQueueHud" class="bonus-queue-hud hidden" aria-label="Cola de bonus R"></div>
       <div class="arena-label">ESPACIO DE JUEGO</div>
       <div class="arena-stage">
         <canvas id="gameCanvas" width="1240" height="760" aria-label="Campo de batalla"></canvas>
       </div>
-      <div class="hint">W/A/S/D para moverte · Click para disparar</div>
+      <div class="hint">W/A/S/D mover · Mantener click disparar · R bonus · Q ultimo · ESC menu</div>
     </section>
 
     <aside class="portrait-panel">
@@ -69,6 +75,7 @@
         <h3>BONUS ACTIVOS</h3>
         <div id="bonusList" class="bonus-list"></div>
       </section>
+      <button id="menuButton" type="button" class="menu-btn">MENU PRINCIPAL</button>
     </aside>
   </main>
 

@@ -12,6 +12,7 @@
       hasEffect,
       startGame,
       restartGame,
+      goToMenu,
       triggerUltimateAttack,
       fireBullet,
       showPickupBanner,
@@ -74,6 +75,13 @@
         }
         e.preventDefault();
       }
+
+      if (key === 'escape' && state.started) {
+        if (goToMenu) {
+          goToMenu();
+        }
+        e.preventDefault();
+      }
     });
 
     window.addEventListener('keyup', (e) => {
@@ -101,16 +109,24 @@
     });
 
     canvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) {
+        return;
+      }
       if (documentRef.pointerLockElement !== canvas && canvas.requestPointerLock) {
         canvas.requestPointerLock();
       }
-
       e.preventDefault();
+      state.mouseHeld = true;
+    });
 
-      const rect = canvas.getBoundingClientRect();
-      const x = documentRef.pointerLockElement === canvas ? state.mouse.x : e.clientX - rect.left;
-      const y = documentRef.pointerLockElement === canvas ? state.mouse.y : e.clientY - rect.top;
-      fireBullet(x, y);
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 0) {
+        state.mouseHeld = false;
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      state.mouseHeld = false;
     });
 
     canvas.addEventListener('contextmenu', (e) => {
