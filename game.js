@@ -24,8 +24,8 @@ const timerEl = document.getElementById('timer');
 
 const { clamp, rand, distSq, makeDistortionCurve } = window.GameUtils;
 const MAX_LIVES = 5;
-const MAP_WIDTH = 1120;
-const MAP_HEIGHT = 700;
+const MAP_WIDTH = 1240;
+const MAP_HEIGHT = 760;
 
 canvas.width = MAP_WIDTH;
 canvas.height = MAP_HEIGHT;

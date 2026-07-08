@@ -442,8 +442,8 @@ body.wave-quake .game-shell {
 }
 
 #gameCanvas {
-  width: 1120px;
-  height: 700px;
+  width: 1240px;
+  height: 760px;
   flex: 0 0 auto;
   display: block;
   cursor: crosshair;
