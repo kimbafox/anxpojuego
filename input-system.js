@@ -12,6 +12,7 @@
       hasEffect,
       startGame,
       restartGame,
+      triggerUltimateAttack,
       fireBullet,
       showPickupBanner,
       statusTextEl,
@@ -65,6 +66,13 @@
 
       if (!state.started && key === 'enter') {
         startGame();
+      }
+
+      if (key === 'q' && state.started && state.running) {
+        if (triggerUltimateAttack) {
+          triggerUltimateAttack(performance.now());
+        }
+        e.preventDefault();
       }
     });
 

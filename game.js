@@ -40,12 +40,17 @@ portraitHit.src = 'assets/anxpo 2.png';
 const kimbaSpectroImage = new Image();
 kimbaSpectroImage.src = 'assets/kimbaespectro.png';
 
+const ultimateLogoImage = new Image();
+ultimateLogoImage.src = 'assets/niveles audio/logo_oficial.png';
+
 const kimbaAudio = new Audio('assets/papa dios.wav');
 kimbaAudio.preload = 'auto';
 const kimbaPlusAudio = new Audio('assets/niveles audio/kimba plus.wav');
 kimbaPlusAudio.preload = 'auto';
 const plusMutadoAudio = new Audio('assets/niveles audio/plusmutacion.wav');
 plusMutadoAudio.preload = 'auto';
+const ultimoAtaqueAudio = new Audio('assets/niveles audio/ultimo ataque.wav');
+ultimoAtaqueAudio.preload = 'auto';
 const waveAudioPlayers = new Map();
 const backgroundMusic = new Audio('assets/MUSICAFONDO.mp3');
 backgroundMusic.preload = 'auto';
@@ -61,6 +66,7 @@ let sfxContext = null;
 let kimbaBuffer = null;
 let kimbaPlusBuffer = null;
 let plusMutadoBuffer = null;
+let ultimoAtaqueBuffer = null;
 const waveAudioBuffers = new Map();
 let sfxFxInput = null;
 let kimbaPlusMediaSource = null;
@@ -191,6 +197,10 @@ const state = {
   playerLaserAngle: 0,
   kimbaPlusGoldUntil: 0,
   kimbaSpectroUntil: 0,
+  ultimateUsed: false,
+  ultimateUntil: 0,
+  ultimateLogoUntil: 0,
+  ultimateTickTimer: 0,
   shieldCharges: 0,
   damageCount: 0,
   shakeUntil: 0,
@@ -282,6 +292,20 @@ async function ensureKimbaAudioReady() {
     }
     const arrayBuffer = await response.arrayBuffer();
     plusMutadoBuffer = await sfxContext.decodeAudioData(arrayBuffer);
+  }
+
+  if (!ultimoAtaqueBuffer) {
+    let response = null;
+    try {
+      response = await fetch('assets/niveles audio/ultimo ataque.wav');
+      if (!response.ok) {
+        throw new Error('Primary ultimo ataque path failed');
+      }
+    } catch (_) {
+      response = await fetch('assets/niveles%20audio/ultimo%20ataque.wav');
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    ultimoAtaqueBuffer = await sfxContext.decodeAudioData(arrayBuffer);
   }
 }
 
@@ -398,6 +422,45 @@ function playPlusMutadoAudio() {
   }
 
   playSfxBuffer(plusMutadoBuffer, 1.12);
+}
+
+function playUltimoAtaqueAudio() {
+  const fallbackPlay = () => {
+    ultimoAtaqueAudio.currentTime = 0;
+    ultimoAtaqueAudio.play().catch(() => {});
+  };
+
+  if (!sfxContext || !ultimoAtaqueBuffer) {
+    ensureKimbaAudioReady().then(() => {
+      if (sfxContext) {
+        playUltimoAtaqueAudio();
+      }
+    }).catch(() => {
+      fallbackPlay();
+    });
+    return;
+  }
+
+  playSfxBuffer(ultimoAtaqueBuffer, 1.2);
+}
+
+function triggerUltimateAttack(now) {
+  if (!state.started || !state.running) {
+    return;
+  }
+
+  if (state.ultimateUsed) {
+    showPickupBanner('ULTIMO ATAQUE YA FUE USADO', now);
+    return;
+  }
+
+  state.ultimateUsed = true;
+  state.ultimateUntil = now + 5000;
+  state.ultimateLogoUntil = now + 3000;
+  state.ultimateTickTimer = 0;
+  playUltimoAtaqueAudio();
+  showPickupBanner('ULTIMO ATAQUE ACTIVADO (Q)', now);
+  statusTextEl.textContent = 'Estado: ULTIMO ATAQUE en ejecucion';
 }
 
 function playShootSound() {
@@ -1147,6 +1210,64 @@ function fireBullet(targetX, targetY) {
   state.fireCooldown = hasEffect('pasmor') ? 0.075 : 0.11;
 }
 
+function updateUltimateAttack(dt, now) {
+  if (now > state.ultimateUntil) {
+    return;
+  }
+
+  const beamHalfWidth = 24;
+  state.ultimateTickTimer += dt;
+  if (state.ultimateTickTimer < 0.1) {
+    return;
+  }
+  state.ultimateTickTimer = 0;
+
+  for (let i = state.enemies.length - 1; i >= 0; i -= 1) {
+    const e = state.enemies[i];
+    const inHorizontal = Math.abs(e.y - player.y) <= beamHalfWidth + e.radius;
+    const inVertical = Math.abs(e.x - player.x) <= beamHalfWidth + e.radius;
+    if (!inHorizontal && !inVertical) {
+      continue;
+    }
+
+    e.hp -= 3;
+    if (e.hp <= 0) {
+      state.enemies.splice(i, 1);
+      state.score += 1;
+      state.kills += 1;
+      player.radius = playerRadiusByScore();
+      checkWaveProgression(now);
+    }
+  }
+
+  if (state.boss) {
+    const b = state.boss;
+    const inHorizontal = Math.abs(b.y - player.y) <= beamHalfWidth + b.radius;
+    const inVertical = Math.abs(b.x - player.x) <= beamHalfWidth + b.radius;
+    if (inHorizontal || inVertical) {
+      b.hp -= 4;
+      if (b.hp <= 0) {
+        state.boss = null;
+        state.running = false;
+        state.win = true;
+        statusTextEl.textContent = 'Estado: Victoria total';
+      }
+    }
+  }
+
+  for (let i = state.enemyBullets.length - 1; i >= 0; i -= 1) {
+    const b = state.enemyBullets[i];
+    if (!b.destructible) {
+      continue;
+    }
+    const inHorizontal = Math.abs(b.y - player.y) <= beamHalfWidth + b.r;
+    const inVertical = Math.abs(b.x - player.x) <= beamHalfWidth + b.r;
+    if (inHorizontal || inVertical) {
+      state.enemyBullets.splice(i, 1);
+    }
+  }
+}
+
 function setupInput() {
   window.GameInputSystem.setupInputHandlers({
     state,
@@ -1154,6 +1275,7 @@ function setupInput() {
     hasEffect,
     startGame,
     restartGame,
+    triggerUltimateAttack,
     fireBullet,
     showPickupBanner,
     statusTextEl,
@@ -1206,6 +1328,10 @@ function restartGame() {
   state.playerLaserAngle = 0;
   state.kimbaPlusGoldUntil = 0;
   state.kimbaSpectroUntil = 0;
+  state.ultimateUsed = false;
+  state.ultimateUntil = 0;
+  state.ultimateLogoUntil = 0;
+  state.ultimateTickTimer = 0;
   state.shieldCharges = 0;
   state.damageCount = 0;
   state.shakeUntil = 0;
@@ -1231,6 +1357,7 @@ function restartGame() {
   document.body.classList.remove('navelo-mode');
   document.body.classList.remove('voculos-mode');
   document.body.classList.remove('kimba-plus-mode');
+  document.body.classList.remove('ultimate-mode');
   document.body.classList.remove('wave-quake');
   updatePips();
   generateObstacles();
@@ -2079,6 +2206,60 @@ function drawPlayerLaser(now) {
   ctx.stroke();
 }
 
+function drawUltimateAttack(now) {
+  if (now > state.ultimateUntil) {
+    return;
+  }
+
+  const pulse = 0.78 + Math.sin(now * 0.03) * 0.22;
+  const beamWidth = 22;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+
+  ctx.strokeStyle = `rgba(255, 120, 40, ${0.36 + pulse * 0.22})`;
+  ctx.lineWidth = beamWidth;
+  ctx.beginPath();
+  ctx.moveTo(0, player.y);
+  ctx.lineTo(canvas.width, player.y);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(player.x, 0);
+  ctx.lineTo(player.x, canvas.height);
+  ctx.stroke();
+
+  ctx.strokeStyle = `rgba(255, 235, 180, ${0.46 + pulse * 0.2})`;
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(0, player.y);
+  ctx.lineTo(canvas.width, player.y);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(player.x, 0);
+  ctx.lineTo(player.x, canvas.height);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawUltimateLogo(now) {
+  if (now > state.ultimateLogoUntil || !ultimateLogoImage.complete || ultimateLogoImage.naturalWidth <= 0) {
+    return;
+  }
+
+  const left = state.ultimateLogoUntil - now;
+  const alpha = clamp((left / 3000) * 0.9, 0.32, 0.9);
+  const w = Math.min(canvas.width * 0.5, 360);
+  const h = w * (ultimateLogoImage.naturalHeight / ultimateLogoImage.naturalWidth);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(ultimateLogoImage, canvas.width * 0.5 - w * 0.5, canvas.height * 0.18, w, h);
+  ctx.restore();
+}
+
 function drawAimCursor(now) {
   const x = clamp(state.mouse.x, 0, canvas.width);
   const y = clamp(state.mouse.y, 0, canvas.height);
@@ -2191,6 +2372,8 @@ let last = performance.now();
 function tick(now) {
   resizeCanvas();
 
+  document.body.classList.toggle('ultimate-mode', now < state.ultimateUntil);
+
   const dt = Math.min(0.033, (now - last) / 1000);
   last = now;
 
@@ -2214,6 +2397,7 @@ function tick(now) {
     updateEnemyBullets(dt, now);
     updatePowerups(dt, now);
     updateEnemies(dt, now);
+    updateUltimateAttack(dt, now);
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2238,6 +2422,8 @@ function tick(now) {
   drawBoss();
   drawPlayer(now);
   drawPlayerLaser(now);
+  drawUltimateAttack(now);
+  drawUltimateLogo(now);
   drawAimCursor(now);
   drawDistortion(now);
 
