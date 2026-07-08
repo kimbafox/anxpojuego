@@ -486,7 +486,11 @@ body.wave-quake .game-shell {
   z-index: 5;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 50% 30%, rgba(25, 95, 43, 0.3), rgba(0, 0, 0, 0.82));
+  padding: 18px;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(50, 165, 93, 0.34), rgba(0, 0, 0, 0) 42%),
+    radial-gradient(circle at 78% 72%, rgba(24, 88, 53, 0.28), rgba(0, 0, 0, 0) 38%),
+    linear-gradient(180deg, rgba(5, 20, 9, 0.72), rgba(0, 0, 0, 0.9));
 }
 
 .start-menu.hidden {
@@ -494,17 +498,38 @@ body.wave-quake .game-shell {
 }
 
 .start-card {
-  width: min(92vw, 460px);
+  width: min(96vw, 560px);
   background: linear-gradient(180deg, rgba(7, 24, 12, 0.96), rgba(2, 8, 4, 0.98));
   border: 2px solid #43d170;
-  box-shadow: 0 0 26px rgba(95, 255, 143, 0.25), inset 0 0 30px rgba(95, 255, 143, 0.09);
-  padding: 16px;
+  box-shadow: 0 0 34px rgba(95, 255, 143, 0.27), inset 0 0 30px rgba(95, 255, 143, 0.09);
+  padding: 20px 18px 16px;
   text-align: center;
+  animation: startCardEnter 0.45s ease-out;
+}
+
+@keyframes startCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.start-kicker {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #8af1a9;
+  opacity: 0.92;
 }
 
 .start-card h1 {
-  margin: 0 0 10px;
-  letter-spacing: 2px;
+  margin: 0 0 12px;
+  font-size: clamp(30px, 6vw, 44px);
+  letter-spacing: 3px;
   color: #b2ffc8;
   text-shadow: 0 0 12px rgba(111, 255, 153, 0.7);
 }
@@ -512,7 +537,7 @@ body.wave-quake .game-shell {
 .start-portrait {
   border: 1px solid #3ad468;
   background: #041108;
-  min-height: 240px;
+  min-height: 260px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -525,12 +550,21 @@ body.wave-quake .game-shell {
   object-fit: contain;
 }
 
-.start-card p {
-  margin: 10px 0 14px;
+.start-lead {
+  margin: 12px 0 8px;
+  font-size: 14px;
+  color: #cbffd8;
+}
+
+.start-controls {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #9fe6b2;
+  opacity: 0.9;
 }
 
 #startButton {
-  background: linear-gradient(180deg, #205f32, #0d2f16);
+  background: linear-gradient(180deg, #2c7a42, #134223);
   color: #d0ffd9;
   border: 1px solid #63f790;
   padding: 10px 22px;
@@ -538,15 +572,17 @@ body.wave-quake .game-shell {
   letter-spacing: 1px;
   cursor: pointer;
   text-shadow: 0 0 8px rgba(151, 255, 176, 0.7);
+  transition: transform 0.14s ease, filter 0.14s ease;
 }
 
 #startButton:hover {
   filter: brightness(1.2);
+  transform: translateY(-1px);
 }
 
 .start-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr);
   gap: 8px;
 }
 
@@ -559,10 +595,12 @@ body.wave-quake .game-shell {
   letter-spacing: 1px;
   cursor: pointer;
   text-shadow: 0 0 8px rgba(165, 198, 255, 0.7);
+  transition: transform 0.14s ease, filter 0.14s ease;
 }
 
 #bonusInfoButton:hover {
   filter: brightness(1.14);
+  transform: translateY(-1px);
 }
 
 .bonus-guide-panel {
@@ -748,6 +786,14 @@ body.wave-quake .game-shell {
   }
 
   .hud-top {
+    grid-template-columns: 1fr;
+  }
+
+  .start-card {
+    width: min(96vw, 520px);
+  }
+
+  .start-actions {
     grid-template-columns: 1fr;
   }
 }

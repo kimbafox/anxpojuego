@@ -1116,6 +1116,9 @@ function fireViculosLaser(targetX, targetY, now) {
 
   for (let i = state.enemies.length - 1; i >= 0; i -= 1) {
     const e = state.enemies[i];
+    if (!e) {
+      continue;
+    }
     const beamDist = pointSegmentDistance(e.x, e.y, player.x, player.y, lx, ly);
     if (beamDist <= e.radius + 6) {
       e.hp -= 4;
@@ -1125,6 +1128,9 @@ function fireViculosLaser(targetX, targetY, now) {
         state.kills += 1;
         player.radius = playerRadiusByScore();
         checkWaveProgression(now);
+        if (state.boss) {
+          break;
+        }
       }
     }
   }
@@ -1246,6 +1252,9 @@ function updateUltimateAttack(dt, now) {
 
   for (let i = state.enemies.length - 1; i >= 0; i -= 1) {
     const e = state.enemies[i];
+    if (!e) {
+      continue;
+    }
     const inHorizontal = Math.abs(e.y - player.y) <= beamHalfWidth + e.radius;
     const inVertical = Math.abs(e.x - player.x) <= beamHalfWidth + e.radius;
     if (!inHorizontal && !inVertical) {
@@ -1259,6 +1268,9 @@ function updateUltimateAttack(dt, now) {
       state.kills += 1;
       player.radius = playerRadiusByScore();
       checkWaveProgression(now);
+      if (state.boss) {
+        break;
+      }
     }
   }
 
@@ -1744,6 +1756,9 @@ function updateEnemies(dt, now) {
 
   for (let i = state.enemies.length - 1; i >= 0; i -= 1) {
     const e = state.enemies[i];
+    if (!e) {
+      continue;
+    }
     const dx = player.x - e.x;
     const dy = player.y - e.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -1770,6 +1785,9 @@ function updateEnemies(dt, now) {
           state.kills += 1;
           player.radius = playerRadiusByScore();
           checkWaveProgression(now);
+          if (state.boss) {
+            return;
+          }
           break;
         }
       }
