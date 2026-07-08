@@ -1,0 +1,9 @@
+{
+  "name": "anxpo-vs-all",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor local Node.js para el juego Anxpo vs All",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

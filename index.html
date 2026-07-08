@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anxpo vs All</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="crt-bg"></div>
+  <section id="startMenu" class="start-menu" aria-label="Menu de inicio">
+    <div class="start-card">
+      <h1>ANXPO VS ALL</h1>
+      <div class="start-portrait">
+        <img src="assets/anxpo1.png" alt="Anxpo principal">
+      </div>
+      <p>Sistema listo. Sobrevive a las oleadas.</p>
+      <div class="start-actions">
+        <button id="startButton" type="button">EMPESAR</button>
+        <button id="bonusInfoButton" type="button">VER BONUS</button>
+      </div>
+      <section id="bonusGuidePanel" class="bonus-guide-panel hidden" aria-label="Informacion de bonus">
+        <h3>INFORMACION DE BONUS</h3>
+        <div id="bonusGuideList" class="bonus-guide-list"></div>
+      </section>
+    </div>
+  </section>
+  <main class="game-shell">
+    <section class="arena-wrap">
+      <div id="waveBanner" class="wave-banner" aria-live="assertive"></div>
+      <div id="megaBonusBanner" class="mega-bonus-banner" aria-live="assertive"></div>
+      <div id="pickupBanner" class="pickup-banner" aria-live="polite"></div>
+      <div class="arena-label">ESPACIO DE JUEGO</div>
+      <div class="arena-stage">
+        <canvas id="gameCanvas" width="960" height="600" aria-label="Campo de batalla"></canvas>
+      </div>
+      <div class="hint">W/A/S/D para moverte · Click para disparar</div>
+    </section>
+
+    <aside class="portrait-panel">
+      <h2>ANXPO</h2>
+      <div class="portrait-frame">
+        <img id="portrait" src="assets/anxpo1.png" alt="Rostro de Anxpo">
+      </div>
+      <p id="statusText">Estado: En combate</p>
+      <div class="life-pips" aria-hidden="true">
+        <span class="pip on" id="pip1"></span>
+        <span class="pip on" id="pip2"></span>
+        <span class="pip on" id="pip3"></span>
+        <span class="pip on" id="pip4"></span>
+        <span class="pip on" id="pip5"></span>
+      </div>
+      <section class="hud-block" aria-label="Marcadores del jugador">
+        <h3>MARCADORES</h3>
+        <div class="hud-top">
+          <div class="stat"><span>Puntos</span><strong id="score">0</strong></div>
+          <div class="stat"><span>Oleada</span><strong id="wave">1</strong></div>
+          <div class="stat"><span>Vidas</span><strong id="lives">3</strong></div>
+          <div class="stat"><span>Bajas</span><strong id="kills">0</strong></div>
+          <div class="stat"><span>Bono</span><strong id="power">ninguno</strong></div>
+          <div id="bossStat" class="stat boss-stat" style="display:none;"><span>Vida Jefe</span><strong id="bossHp">--</strong></div>
+        </div>
+      </section>
+      <section class="bonus-panel">
+        <h3>BONUS ACTIVOS</h3>
+        <div id="bonusList" class="bonus-list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="game-utils.js"></script>
+  <script src="input-system.js"></script>
+  <script src="powerup-system.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
