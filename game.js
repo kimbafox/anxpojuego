@@ -20,9 +20,15 @@ const bonusGuidePanelEl = document.getElementById('bonusGuidePanel');
 const bonusGuideListEl = document.getElementById('bonusGuideList');
 const portraitEl = document.getElementById('portrait');
 const statusTextEl = document.getElementById('statusText');
+const timerEl = document.getElementById('timer');
 
 const { clamp, rand, distSq, makeDistortionCurve } = window.GameUtils;
 const MAX_LIVES = 5;
+const MAP_WIDTH = 960;
+const MAP_HEIGHT = 600;
+
+canvas.width = MAP_WIDTH;
+canvas.height = MAP_HEIGHT;
 
 const pipEls = [
   document.getElementById('pip1'),
@@ -205,7 +211,9 @@ const state = {
   shieldCharges: 0,
   damageCount: 0,
   shakeUntil: 0,
-  shakePower: 0
+  shakePower: 0,
+  startedAt: 0,
+  endedAt: 0
 };
 
 const player = {
@@ -641,25 +649,24 @@ function playWaveLevelAudio(wave) {
 }
 
 function resizeCanvas() {
-  const rect = canvas.getBoundingClientRect();
-  const width = Math.floor(rect.width);
-  const height = Math.floor(rect.height);
-
-  if (width <= 0 || height <= 0) {
-    return;
-  }
-
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
-
-    player.x = clamp(player.x, player.radius, canvas.width - player.radius);
-    player.y = clamp(player.y, player.radius, canvas.height - player.radius);
+  if (canvas.width !== MAP_WIDTH || canvas.height !== MAP_HEIGHT) {
+    canvas.width = MAP_WIDTH;
+    canvas.height = MAP_HEIGHT;
 
     if (state.obstacles.length === 0) {
       generateObstacles();
     }
   }
+
+  player.x = clamp(player.x, player.radius, canvas.width - player.radius);
+  player.y = clamp(player.y, player.radius, canvas.height - player.radius);
+}
+
+function formatElapsedTime(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function updatePips() {
@@ -791,6 +798,7 @@ function applyDamage(now) {
 
   if (state.lives <= 0) {
     state.running = false;
+    state.endedAt = now;
     setBackgroundTrack('normal', true);
     statusTextEl.textContent = 'Estado: Has caido. Presiona R para reiniciar';
   }
@@ -1284,6 +1292,7 @@ function updateUltimateAttack(dt, now) {
         state.boss = null;
         state.running = false;
         state.win = true;
+        state.endedAt = now;
         statusTextEl.textContent = 'Estado: Victoria total';
       }
     }
@@ -1370,6 +1379,8 @@ function restartGame() {
   state.damageCount = 0;
   state.shakeUntil = 0;
   state.shakePower = 0;
+  state.startedAt = performance.now();
+  state.endedAt = 0;
 
   player.x = canvas.width * 0.5;
   player.y = canvas.height * 0.5;
@@ -1721,6 +1732,7 @@ function updateEnemies(dt, now) {
           state.boss = null;
           state.running = false;
           state.win = true;
+          state.endedAt = now;
           statusTextEl.textContent = 'Estado: Victoria total';
           return;
         }
@@ -2386,6 +2398,11 @@ function updateHUD(now) {
   waveEl.textContent = String(state.wave);
   livesEl.textContent = String(Math.max(0, state.lives));
   killsEl.textContent = String(state.kills);
+  if (timerEl) {
+    const endTime = state.running ? now : (state.endedAt || now);
+    const elapsed = state.startedAt > 0 ? endTime - state.startedAt : 0;
+    timerEl.textContent = formatElapsedTime(elapsed);
+  }
 
   if (waveProgressCounterEl) {
     if (state.wave >= 10) {
@@ -2499,9 +2516,12 @@ function init() {
     startButtonEl.addEventListener('click', startGame);
   }
   if (bonusInfoButtonEl && bonusGuidePanelEl) {
+    bonusInfoButtonEl.setAttribute('aria-expanded', 'false');
     bonusInfoButtonEl.addEventListener('click', () => {
       bonusGuidePanelEl.classList.toggle('hidden');
-      bonusInfoButtonEl.textContent = bonusGuidePanelEl.classList.contains('hidden') ? 'VER BONUS' : 'OCULTAR BONUS';
+      const hidden = bonusGuidePanelEl.classList.contains('hidden');
+      bonusInfoButtonEl.textContent = hidden ? 'VER BONUS' : 'OCULTAR BONUS';
+      bonusInfoButtonEl.setAttribute('aria-expanded', hidden ? 'false' : 'true');
     });
   }
   statusTextEl.textContent = 'Estado: Esperando inicio';

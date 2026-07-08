@@ -295,7 +295,10 @@ body.ultimate-mode .hud-block h3 {
   border: 2px solid #2aa852;
   background: rgba(2, 14, 6, 0.86);
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .wave-banner {
@@ -439,8 +442,9 @@ body.wave-quake .game-shell {
 }
 
 #gameCanvas {
-  width: 100%;
-  height: 100%;
+  width: 960px;
+  height: 600px;
+  flex: 0 0 auto;
   display: block;
   cursor: crosshair;
   background:
@@ -582,8 +586,10 @@ body.wave-quake .game-shell {
 
 .start-actions {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr);
-  gap: 8px;
+  grid-template-columns: minmax(220px, 1fr);
+  gap: 10px;
+  max-width: 360px;
+  margin: 0 auto;
 }
 
 #bonusInfoButton {
@@ -609,10 +615,20 @@ body.wave-quake .game-shell {
   background: rgba(4, 10, 25, 0.86);
   padding: 8px;
   text-align: left;
+  overflow: hidden;
+  max-height: 280px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: max-height 0.24s ease, opacity 0.2s ease, transform 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
 }
 
 .bonus-guide-panel.hidden {
-  display: none;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  padding-top: 0;
+  padding-bottom: 0;
+  border-color: rgba(68, 157, 255, 0);
 }
 
 .bonus-guide-panel h3 {
@@ -795,5 +811,6 @@ body.wave-quake .game-shell {
 
   .start-actions {
     grid-template-columns: 1fr;
+    max-width: none;
   }
 }
