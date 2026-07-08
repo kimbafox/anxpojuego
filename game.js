@@ -12,6 +12,7 @@ const waveBannerEl = document.getElementById('waveBanner');
 const megaBonusBannerEl = document.getElementById('megaBonusBanner');
 const bonusListEl = document.getElementById('bonusList');
 const pickupBannerEl = document.getElementById('pickupBanner');
+const waveProgressCounterEl = document.getElementById('waveProgressCounter');
 const startMenuEl = document.getElementById('startMenu');
 const startButtonEl = document.getElementById('startButton');
 const bonusInfoButtonEl = document.getElementById('bonusInfoButton');
@@ -701,8 +702,10 @@ function bulletRadiusByPower() {
 }
 
 function playerSpeed() {
+  const scoreTier = Math.floor(state.score / 50);
+  const scoreBoost = 1 + Math.min(0.9, scoreTier * 0.08);
   const speedBonus = hasEffect('speed') ? 1.48 : 1;
-  return player.speed * speedBonus;
+  return player.speed * scoreBoost * speedBonus;
 }
 
 function hasEffect(type) {
@@ -1048,29 +1051,30 @@ function setBackgroundTrack(track, restartFromStart = false) {
 }
 
 function startWave(wave, now) {
+  const safeWave = clamp(Math.floor(wave), 1, 10);
   const prevWave = state.wave;
-  state.wave = wave;
-  if (wave > 5) {
+  state.wave = safeWave;
+  if (safeWave > 5) {
     setBackgroundTrack('silala');
   } else {
     setBackgroundTrack('normal');
   }
-  if (wave > 1 && wave < 10) {
+  if (safeWave > 1 && safeWave < 10) {
     generateObstacles();
   }
-  if (wave > prevWave) {
+  if (safeWave > prevWave) {
     state.uiQuakeUntil = now + 3000;
     document.body.classList.add('wave-quake');
   }
-  playWaveAnnouncement(wave, now);
+  playWaveAnnouncement(safeWave, now);
 
-  if (wave >= 10 && !state.boss) {
+  if (safeWave >= 10 && !state.boss) {
     spawnBoss();
   }
 }
 
 function checkWaveProgression(now) {
-  const targetWave = Math.floor(state.kills / 30) + 1;
+  const targetWave = clamp(Math.floor(state.kills / 30) + 1, 1, 10);
   if (targetWave > state.wave && !state.boss) {
     startWave(targetWave, now);
     return;
@@ -1140,7 +1144,7 @@ function fireViculosLaser(targetX, targetY, now) {
 }
 
 function spawnBoss() {
-  if (state.boss || !state.running) {
+  if (state.boss || !state.started) {
     return;
   }
 
@@ -1151,7 +1155,7 @@ function spawnBoss() {
     x: canvas.width * 0.5,
     y: -120,
     radius: 86,
-    speed: 76,
+    speed: 48,
     hp: 420,
     maxHp: 420,
     fireTimer: 0,
@@ -1293,7 +1297,6 @@ function setupInput() {
     hasEffect,
     startGame,
     restartGame,
-    jumpToBoss,
     triggerUltimateAttack,
     fireBullet,
     showPickupBanner,
@@ -1611,8 +1614,8 @@ function updateEnemies(dt, now) {
       if (roll < 0.34) {
         b.mode = 'burst';
         b.modeUntil = now + 640;
-        b.vx = (dx / d) * 320;
-        b.vy = (dy / d) * 320;
+        b.vx = (dx / d) * 185;
+        b.vy = (dy / d) * 185;
       } else if (roll < 0.68) {
         b.mode = 'orbit';
         b.modeUntil = now + 1450;
@@ -1628,11 +1631,11 @@ function updateEnemies(dt, now) {
       b.y += b.vy * dt;
     } else if (b.mode === 'orbit') {
       b.heading += 2.8 * dt;
-      b.x += Math.cos(b.heading) * 165 * dt;
-      b.y += Math.sin(b.heading) * 165 * dt;
+      b.x += Math.cos(b.heading) * 110 * dt;
+      b.y += Math.sin(b.heading) * 110 * dt;
     } else {
-      b.x += (dx / d) * 52 * dt;
-      b.y += (dy / d) * 52 * dt;
+      b.x += (dx / d) * 34 * dt;
+      b.y += (dy / d) * 34 * dt;
     }
 
     b.x = clamp(b.x, b.radius, canvas.width - b.radius);
@@ -2365,6 +2368,17 @@ function updateHUD(now) {
   waveEl.textContent = String(state.wave);
   livesEl.textContent = String(Math.max(0, state.lives));
   killsEl.textContent = String(state.kills);
+
+  if (waveProgressCounterEl) {
+    if (state.wave >= 10) {
+      waveProgressCounterEl.textContent = state.boss ? 'JEFE FINAL ACTIVO' : 'OLEADA 10: APARECE EL JEFE';
+    } else {
+      const killsForNextWave = state.wave * 30;
+      const remaining = Math.max(0, killsForNextWave - state.kills);
+      waveProgressCounterEl.textContent = `FALTAN ${remaining} PARA OLEADA ${state.wave + 1}`;
+    }
+  }
+
   const activeNames = [];
   if (hasEffect('double')) activeNames.push(POWERUP_DEFS.double.display);
   if (hasEffect('bigBullets')) activeNames.push(POWERUP_DEFS.bigBullets.display);
