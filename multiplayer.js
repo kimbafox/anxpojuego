@@ -77,8 +77,12 @@
     sendRaw({ type: 'join', lobby: id });
   }
 
-  function sendState(x, y, lives) {
-    sendRaw({ type: 'state', x, y, lives });
+  function sendState(x, y, lives, score, wave) {
+    sendRaw({ type: 'state', x, y, lives, score: score || 0, wave: wave || 1, ts: performance.now() });
+  }
+
+  function sendBullet(bx, by, bvx, bvy, br) {
+    sendRaw({ type: 'bullet', x: bx, y: by, vx: bvx, vy: bvy, r: br });
   }
 
   function disconnect() {
@@ -93,6 +97,7 @@
     disconnect,
     joinLobby,
     sendState,
+    sendBullet,
     isConnected: () => !!(ws && ws.readyState === WebSocket.OPEN),
     getPlayerId: () => playerId,
     getLobby: () => myLobby,

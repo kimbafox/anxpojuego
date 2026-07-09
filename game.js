@@ -229,7 +229,9 @@ const state = {
   startedAt: 0,
   endedAt: 0,
   isMultiplayer: false,
-  p2: null
+  p2: null,
+  p2Bullets: [],
+  latency: 0
 };
 
 const player = {
@@ -536,7 +538,7 @@ function startMultiplayer() {
     },
     onJoined: (pid, lid, count) => {
       if (count === 1) {
-        if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = `P${pid} en Lobby ${lid}. Esperando jugador 2...`;
+        if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = `P${pid} en Lobby ${lid} · ⏳ Esperando jugador 2...`;
       } else if (count === 2) {
         if (lobbyMenuEl) lobbyMenuEl.classList.add('hidden');
         state.isMultiplayer = true;
@@ -544,7 +546,7 @@ function startMultiplayer() {
       }
     },
     onPeerJoined: () => {
-      if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = '¡P2 se unió! Iniciando...';
+      if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = '¡P2 se unió! Iniciando partida...';
     },
     onGameReady: (pid) => {
       if (lobbyMenuEl) lobbyMenuEl.classList.add('hidden');
@@ -552,7 +554,21 @@ function startMultiplayer() {
       startGame();
     },
     onPeerState: (data) => {
-      state.p2 = data;
+      if (data.type === 'bullet') {
+        state.p2Bullets.push({
+          x: data.x,
+          y: data.y,
+          vx: data.vx,
+          vy: data.vy,
+          r: data.r
+        });
+      } else {
+        // state message (x, y, lives, score, wave, ts)
+        if (data.ts) {
+          state.latency = Math.max(0, performance.now() - data.ts);
+        }
+        state.p2 = data;
+      }
     },
     onPeerLeft: () => {
       state.p2 = null;
@@ -1377,14 +1393,13 @@ function fireBullet(targetX, targetY) {
   }
 
   playShootSound();
+  
+  const bulletsCountBefore = state.bullets.length;
 
   if (hasEffect('voculos')) {
     fireViculosLaser(targetX, targetY, performance.now());
     state.fireCooldown = 0.16;
-    return;
-  }
-
-  if (hasEffect('navelo')) {
+  } else if (hasEffect('navelo')) {
     const radialShots = 16;
     for (let i = 0; i < radialShots; i += 1) {
       const angle = (Math.PI * 2 * i) / radialShots;
@@ -1397,35 +1412,42 @@ function fireBullet(targetX, targetY) {
       });
     }
     state.fireCooldown = 0.13;
-    return;
+  } else {
+    const dx = targetX - player.x;
+    const dy = targetY - player.y;
+    const len = Math.hypot(dx, dy) || 1;
+
+    const amount = bulletsPerShot();
+    const extraShots = hasEffect('pasmor') ? 2 : 0;
+    const totalShots = amount + extraShots;
+
+    for (let i = 0; i < totalShots; i += 1) {
+      const spread = (i - (totalShots - 1) / 2) * (hasEffect('pasmor') ? 0.16 : 0.12);
+      const cos = Math.cos(spread);
+      const sin = Math.sin(spread);
+
+      const nx = (dx / len) * cos - (dy / len) * sin;
+      const ny = (dx / len) * sin + (dy / len) * cos;
+
+      state.bullets.push({
+        x: player.x,
+        y: player.y,
+        vx: nx * 540,
+        vy: ny * 540,
+        r: bulletRadiusByPower()
+      });
+    }
+
+    state.fireCooldown = hasEffect('pasmor') ? 0.075 : 0.11;
   }
 
-  const dx = targetX - player.x;
-  const dy = targetY - player.y;
-  const len = Math.hypot(dx, dy) || 1;
-
-  const amount = bulletsPerShot();
-  const extraShots = hasEffect('pasmor') ? 2 : 0;
-  const totalShots = amount + extraShots;
-
-  for (let i = 0; i < totalShots; i += 1) {
-    const spread = (i - (totalShots - 1) / 2) * (hasEffect('pasmor') ? 0.16 : 0.12);
-    const cos = Math.cos(spread);
-    const sin = Math.sin(spread);
-
-    const nx = (dx / len) * cos - (dy / len) * sin;
-    const ny = (dx / len) * sin + (dy / len) * cos;
-
-    state.bullets.push({
-      x: player.x,
-      y: player.y,
-      vx: nx * 540,
-      vy: ny * 540,
-      r: bulletRadiusByPower()
-    });
+  // Sync new bullets if multiplayer
+  if (state.isMultiplayer && window.GameMultiplayer.isConnected()) {
+    const newBullets = state.bullets.slice(bulletsCountBefore);
+    for (const b of newBullets) {
+      window.GameMultiplayer.sendBullet(b.x, b.y, b.vx, b.vy, b.r);
+    }
   }
-
-  state.fireCooldown = hasEffect('pasmor') ? 0.075 : 0.11;
 }
 
 function updateUltimateAttack(dt, now) {
@@ -1525,6 +1547,7 @@ function restartGame() {
   state.bullets = [];
   state.enemies = [];
   state.enemyBullets = [];
+  state.p2Bullets = [];
   state.powerups = [];
   state.boss = null;
   state.obstacles = [];
@@ -1625,6 +1648,21 @@ function movePlayer(dt) {
   player.x = clamp(player.x, player.radius, canvas.width - player.radius);
   player.y = clamp(player.y, player.radius, canvas.height - player.radius);
 
+  // P2 collision - empujarse mutuamente
+  if (state.isMultiplayer && state.p2) {
+    const dx = player.x - state.p2.x;
+    const dy = player.y - state.p2.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const minDist = player.radius + 10;
+    if (dist < minDist) {
+      const overlap = minDist - dist;
+      const ux = dx / dist;
+      const uy = dy / dist;
+      player.x += ux * overlap * 0.5;
+      player.y += uy * overlap * 0.5;
+    }
+  }
+
   for (const obstacle of state.obstacles) {
     if (resolveCircleObstacle(player, player.radius, obstacle)) {
       player.x = clamp(player.x, player.radius, canvas.width - player.radius);
@@ -1720,6 +1758,25 @@ function updateEnemyBullets(dt, now) {
 
     if (remove) {
       state.enemyBullets.splice(i, 1);
+    }
+  }
+}
+
+function updateP2Bullets(dt) {
+  for (let i = state.p2Bullets.length - 1; i >= 0; i -= 1) {
+    const b = state.p2Bullets[i];
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    let remove = false;
+
+    // Remove if out of bounds
+    if (b.x < -20 || b.x > canvas.width + 20 || b.y < -20 || b.y > canvas.height + 20) {
+      remove = true;
+    }
+
+    if (remove) {
+      state.p2Bullets.splice(i, 1);
     }
   }
 }
@@ -2240,6 +2297,21 @@ function drawBullets() {
     ctx.fillStyle = '#cbffd6';
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(203, 255, 214, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+function drawP2Bullets() {
+  for (const b of state.p2Bullets) {
+    ctx.beginPath();
+    ctx.fillStyle = '#7dd8ff';
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(125, 216, 255, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
 }
 
@@ -2661,6 +2733,11 @@ function updateHUD(now) {
   renderBonusList(now);
   renderBonusQueueHud();
   updatePortrait(now);
+  
+  // Show latency if multiplayer
+  if (state.isMultiplayer && state.latency > 0 && statusTextEl) {
+    statusTextEl.textContent = `Estado: En combate | Ping: ${Math.round(state.latency)}ms`;
+  }
 }
 
 let last = performance.now();
@@ -2698,6 +2775,7 @@ function tick(now) {
     movePlayer(dt);
     updateBullets(dt);
     updateEnemyBullets(dt, now);
+    updateP2Bullets(dt);
     updatePowerups(dt, now);
     updateEnemies(dt, now);
     updateUltimateAttack(dt, now);
@@ -2720,6 +2798,7 @@ function tick(now) {
   drawObstacles();
   drawPowerups(now);
   drawBullets();
+  drawP2Bullets();
   drawEnemyBullets();
   drawEnemies();
   drawP2(now);
@@ -2740,7 +2819,7 @@ function tick(now) {
   renderP2Hud();
   
   if (state.running && state.isMultiplayer && window.GameMultiplayer.isConnected()) {
-    window.GameMultiplayer.sendState(player.x, player.y, state.lives);
+    window.GameMultiplayer.sendState(player.x, player.y, state.lives, state.score, state.wave);
   }
 
   requestAnimationFrame(tick);
