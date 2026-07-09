@@ -26,13 +26,6 @@ const bonusQueueHudEl = document.getElementById('bonusQueueHud');
 const menuButtonEl = document.getElementById('menuButton');
 const volumeSliderEl = document.getElementById('volumeSlider');
 const volumeValueEl = document.getElementById('volumeValue');
-const lobbyMenuEl = document.getElementById('lobbyMenu');
-const multiplayerButtonEl = document.getElementById('multiplayerButton');
-const lobbyBackBtnEl = document.getElementById('lobbyBackBtn');
-const lobbyStatusMsgEl = document.getElementById('lobbyStatusMsg');
-const p2HudEl = document.getElementById('p2Hud');
-const p2pip1El = document.getElementById('p2pip1');
-const p2pip2El = document.getElementById('p2pip2');
 
 const { clamp, rand, distSq, makeDistortionCurve } = window.GameUtils;
 const MAX_LIVES = 5;
@@ -227,11 +220,7 @@ const state = {
   shakeUntil: 0,
   shakePower: 0,
   startedAt: 0,
-  endedAt: 0,
-  isMultiplayer: false,
-  p2: null,
-  p2Bullets: [],
-  latency: 0
+  endedAt: 0
 };
 
 const player = {
@@ -498,109 +487,10 @@ function applyGameVolume() {
   }
 }
 
-function renderP2Hud() {
-  if (!state.isMultiplayer || !state.p2 || !p2HudEl) {
-    if (p2HudEl) p2HudEl.classList.add('hidden');
-    return;
-  }
-  p2HudEl.classList.remove('hidden');
-  const maxLives = 2;
-  for (let i = 0; i < maxLives; i++) {
-    const pipEl = i === 0 ? p2pip1El : p2pip2El;
-    if (pipEl) {
-      pipEl.classList.toggle('on', i < state.p2.lives);
-      pipEl.classList.toggle('off', i >= state.p2.lives);
-    }
-  }
-}
-
-function startMultiplayer() {
-  if (startMenuEl) startMenuEl.classList.add('hidden');
-  if (lobbyMenuEl) lobbyMenuEl.classList.remove('hidden');
-  if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = 'Conectando...';
-  
-  window.GameMultiplayer.connect({
-    onConnected: () => {
-      if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = 'Conectado. Elige un lobby.';
-      window.GameMultiplayer.sendRaw({ type: 'lobby_status' });
-    },
-    onLobbyStatus: (lobbies) => {
-      lobbies.forEach(l => {
-        const cnt = document.getElementById(`lobbyCount${l.id}`);
-        if (cnt) {
-          cnt.textContent = `${l.players}/2`;
-          cnt.classList.toggle('open', l.players < 2);
-          cnt.classList.toggle('full', l.players >= 2);
-        }
-        const btn = document.querySelector(`[data-lobby="${l.id}"]`);
-        if (btn) btn.disabled = l.players >= 2;
-      });
-    },
-    onJoined: (pid, lid, count) => {
-      if (count === 1) {
-        if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = `P${pid} en Lobby ${lid} · ⏳ Esperando jugador 2...`;
-      } else if (count === 2) {
-        if (lobbyMenuEl) lobbyMenuEl.classList.add('hidden');
-        state.isMultiplayer = true;
-        startGame();
-      }
-    },
-    onPeerJoined: () => {
-      if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = '¡P2 se unió! Iniciando partida...';
-    },
-    onGameReady: (pid) => {
-      if (lobbyMenuEl) lobbyMenuEl.classList.add('hidden');
-      state.isMultiplayer = true;
-      startGame();
-    },
-    onPeerState: (data) => {
-      if (data.type === 'bullet') {
-        state.p2Bullets.push({
-          x: data.x,
-          y: data.y,
-          vx: data.vx,
-          vy: data.vy,
-          r: data.r
-        });
-      } else {
-        // state message (x, y, lives, score, wave, ts)
-        if (data.ts) {
-          state.latency = Math.max(0, performance.now() - data.ts);
-        }
-        state.p2 = data;
-      }
-    },
-    onPeerLeft: () => {
-      state.p2 = null;
-      if (state.running) {
-        statusTextEl.textContent = 'Estado: P2 se desconecto. Presiona R para reiniciar';
-        state.running = false;
-      }
-    },
-    onLobbyFull: () => {
-      if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = 'Lobby lleno. Intenta otro.';
-    },
-    onError: (msg) => {
-      if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = `Error: ${msg}`;
-    },
-    onDisconnect: () => {
-      if (lobbyMenuEl && !lobbyMenuEl.classList.contains('hidden')) {
-        if (lobbyStatusMsgEl) lobbyStatusMsgEl.textContent = 'Desconectado.';
-      }
-    }
-  });
-}
-
 function goToMenu() {
   state.running = false;
   state.started = false;
   state.mouseHeld = false;
-  if (state.isMultiplayer) {
-    window.GameMultiplayer.disconnect();
-    state.isMultiplayer = false;
-    state.p2 = null;
-    if (p2HudEl) p2HudEl.classList.add('hidden');
-  }
   backgroundMusic.pause();
   backgroundMusic.currentTime = 0;
   silalaMusic.pause();
@@ -1440,14 +1330,6 @@ function fireBullet(targetX, targetY) {
 
     state.fireCooldown = hasEffect('pasmor') ? 0.075 : 0.11;
   }
-
-  // Sync new bullets if multiplayer
-  if (state.isMultiplayer && window.GameMultiplayer.isConnected()) {
-    const newBullets = state.bullets.slice(bulletsCountBefore);
-    for (const b of newBullets) {
-      window.GameMultiplayer.sendBullet(b.x, b.y, b.vx, b.vy, b.r);
-    }
-  }
 }
 
 function updateUltimateAttack(dt, now) {
@@ -1758,25 +1640,6 @@ function updateEnemyBullets(dt, now) {
 
     if (remove) {
       state.enemyBullets.splice(i, 1);
-    }
-  }
-}
-
-function updateP2Bullets(dt) {
-  for (let i = state.p2Bullets.length - 1; i >= 0; i -= 1) {
-    const b = state.p2Bullets[i];
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-
-    let remove = false;
-
-    // Remove if out of bounds
-    if (b.x < -20 || b.x > canvas.width + 20 || b.y < -20 || b.y > canvas.height + 20) {
-      remove = true;
-    }
-
-    if (remove) {
-      state.p2Bullets.splice(i, 1);
     }
   }
 }
@@ -2249,48 +2112,6 @@ function drawPlayer(now) {
   ctx.restore();
 }
 
-function drawP2(now) {
-  if (!state.isMultiplayer || !state.p2) {
-    return;
-  }
-
-  const p2 = state.p2;
-  const scale = 0.9;
-  ctx.save();
-  ctx.translate(p2.x || 0, p2.y || 0);
-
-  const aura = ctx.createRadialGradient(0, 0, 2, 0, 0, 28 * scale);
-  aura.addColorStop(0, 'rgba(120, 200, 255, 0.32)');
-  aura.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = aura;
-  ctx.fillRect(-30 * scale, -30 * scale, 60 * scale, 60 * scale);
-
-  ctx.fillStyle = '#7fc8ff';
-  ctx.strokeStyle = '#b8e0ff';
-  ctx.lineWidth = 2;
-
-  ctx.beginPath();
-  ctx.moveTo(12 * scale, 0);
-  ctx.lineTo(4 * scale, -7 * scale);
-  ctx.lineTo(-3 * scale, -7 * scale);
-  ctx.lineTo(-5 * scale, 0);
-  ctx.lineTo(-3 * scale, 7 * scale);
-  ctx.lineTo(4 * scale, 7 * scale);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = '#c8e0ff';
-  ctx.beginPath();
-  ctx.moveTo(15 * scale, -2.5 * scale);
-  ctx.lineTo(24 * scale, 0);
-  ctx.lineTo(15 * scale, 2.5 * scale);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.restore();
-}
-
 function drawBullets() {
   for (const b of state.bullets) {
     ctx.beginPath();
@@ -2298,18 +2119,6 @@ function drawBullets() {
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(203, 255, 214, 0.5)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-}
-
-function drawP2Bullets() {
-  for (const b of state.p2Bullets) {
-    ctx.beginPath();
-    ctx.fillStyle = '#7dd8ff';
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(125, 216, 255, 0.6)';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -2775,7 +2584,6 @@ function tick(now) {
     movePlayer(dt);
     updateBullets(dt);
     updateEnemyBullets(dt, now);
-    updateP2Bullets(dt);
     updatePowerups(dt, now);
     updateEnemies(dt, now);
     updateUltimateAttack(dt, now);
@@ -2798,10 +2606,8 @@ function tick(now) {
   drawObstacles();
   drawPowerups(now);
   drawBullets();
-  drawP2Bullets();
   drawEnemyBullets();
   drawEnemies();
-  drawP2(now);
   drawBoss();
   drawPlayer(now);
   drawPlayerLaser(now);
@@ -2816,12 +2622,7 @@ function tick(now) {
   ctx.restore();
 
   updateHUD(now);
-  renderP2Hud();
   
-  if (state.running && state.isMultiplayer && window.GameMultiplayer.isConnected()) {
-    window.GameMultiplayer.sendState(player.x, player.y, state.lives, state.score, state.wave);
-  }
-
   requestAnimationFrame(tick);
 }
 
@@ -2835,25 +2636,6 @@ function init() {
   if (startButtonEl) {
     startButtonEl.addEventListener('click', startGame);
   }
-
-  if (multiplayerButtonEl) {
-    multiplayerButtonEl.addEventListener('click', startMultiplayer);
-  }
-
-  if (lobbyBackBtnEl) {
-    lobbyBackBtnEl.addEventListener('click', () => {
-      window.GameMultiplayer.disconnect();
-      if (lobbyMenuEl) lobbyMenuEl.classList.add('hidden');
-      if (startMenuEl) startMenuEl.classList.remove('hidden');
-    });
-  }
-
-  document.querySelectorAll('[data-lobby]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const lobbyId = e.target.dataset.lobby;
-      window.GameMultiplayer.joinLobby(Number(lobbyId));
-    });
-  });
 
   if (bonusInfoButtonEl && bonusGuidePanelEl) {
     bonusInfoButtonEl.setAttribute('aria-expanded', 'false');
