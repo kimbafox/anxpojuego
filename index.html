@@ -23,7 +23,8 @@
         <span id="volumeValue" class="vol-val">55%</span>
       </div>
       <div class="start-actions">
-        <button id="startButton" type="button">EMPEZAR</button>
+        <button id="startButton" type="button">EMPEZAR SOLO</button>
+        <button id="multiplayerButton" type="button" class="mp-btn">MULTIJUGADOR</button>
         <button id="bonusInfoButton" type="button">VER BONUS</button>
       </div>
       <section id="bonusGuidePanel" class="bonus-guide-panel hidden" aria-label="Informacion de bonus">
@@ -32,6 +33,41 @@
       </section>
     </div>
   </section>
+
+  <!-- ── Lobby multiplayer screen ── -->
+  <section id="lobbyMenu" class="lobby-menu hidden" aria-label="Seleccion de lobby multijugador">
+    <div class="lobby-card">
+      <p class="start-kicker">CO-OP ONLINE</p>
+      <h2 class="lobby-title">MULTIJUGADOR</h2>
+      <p class="lobby-sub">Elige un lobby · Max 2 jugadores por sala</p>
+      <div class="lobby-list">
+        <div class="lobby-item">
+          <div class="lobby-item-info">
+            <span class="lobby-name">LOBBY 1</span>
+            <span class="lobby-count" id="lobbyCount1">…</span>
+          </div>
+          <button class="lobby-join-btn" type="button" data-lobby="1">UNIRSE</button>
+        </div>
+        <div class="lobby-item">
+          <div class="lobby-item-info">
+            <span class="lobby-name">LOBBY 2</span>
+            <span class="lobby-count" id="lobbyCount2">…</span>
+          </div>
+          <button class="lobby-join-btn" type="button" data-lobby="2">UNIRSE</button>
+        </div>
+        <div class="lobby-item">
+          <div class="lobby-item-info">
+            <span class="lobby-name">LOBBY 3</span>
+            <span class="lobby-count" id="lobbyCount3">…</span>
+          </div>
+          <button class="lobby-join-btn" type="button" data-lobby="3">UNIRSE</button>
+        </div>
+      </div>
+      <p id="lobbyStatusMsg" class="lobby-status-msg"></p>
+      <button id="lobbyBackBtn" type="button" class="lobby-back-btn">← VOLVER AL MENU</button>
+    </div>
+  </section>
+
   <main class="game-shell">
     <section class="arena-wrap">
       <div id="waveBanner" class="wave-banner" aria-live="assertive"></div>
@@ -39,6 +75,19 @@
       <div id="pickupBanner" class="pickup-banner" aria-live="polite"></div>
       <div id="waveProgressCounter" class="wave-progress-counter">FALTAN 30 PARA OLEADA 2</div>
       <div id="bonusQueueHud" class="bonus-queue-hud hidden" aria-label="Cola de bonus R"></div>
+      <!-- P2 mini HUD (top-left corner, visible in multiplayer) -->
+      <div id="p2Hud" class="p2-hud hidden" aria-label="Estado jugador 2">
+        <div class="p2-portrait-frame">
+          <img id="p2Portrait" src="assets/anxpo1.png" alt="Jugador 2">
+        </div>
+        <div class="p2-info">
+          <span class="p2-label">P2</span>
+          <div class="p2-pips">
+            <span id="p2pip1" class="pip on"></span>
+            <span id="p2pip2" class="pip on"></span>
+          </div>
+        </div>
+      </div>
       <div class="arena-label">ESPACIO DE JUEGO</div>
       <div class="arena-stage">
         <canvas id="gameCanvas" width="1240" height="760" aria-label="Campo de batalla"></canvas>
@@ -82,6 +131,7 @@
   <script src="game-utils.js"></script>
   <script src="input-system.js"></script>
   <script src="powerup-system.js"></script>
+  <script src="multiplayer.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

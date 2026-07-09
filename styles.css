@@ -790,6 +790,188 @@ body.wave-quake .game-shell {
   border-color: rgba(200, 80, 80, 0.35);
 }
 
+/* ── Lobby multiplayer screen ── */
+.lobby-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(24, 72, 130, 0.45), transparent 42%),
+    radial-gradient(circle at 78% 72%, rgba(14, 44, 90, 0.32), transparent 38%),
+    linear-gradient(180deg, rgba(3, 10, 22, 0.88), rgba(0, 0, 0, 0.96));
+}
+
+.lobby-menu.hidden { display: none; }
+
+.lobby-card {
+  width: min(96vw, 520px);
+  background: linear-gradient(180deg, rgba(4, 12, 28, 0.97), rgba(1, 5, 14, 0.99));
+  border: 2px solid #3a72d4;
+  box-shadow: 0 0 34px rgba(80, 140, 255, 0.28), inset 0 0 30px rgba(60, 110, 220, 0.09);
+  padding: 22px 18px 18px;
+  text-align: center;
+  animation: startCardEnter 0.38s ease-out;
+}
+
+.lobby-title {
+  margin: 4px 0 10px;
+  font-size: clamp(24px, 5vw, 36px);
+  letter-spacing: 3px;
+  color: #a8ccff;
+  text-shadow: 0 0 12px rgba(120, 170, 255, 0.7);
+}
+
+.lobby-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #8ab0e8;
+  opacity: 0.9;
+}
+
+.lobby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lobby-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #2a5090;
+  background: rgba(6, 16, 40, 0.78);
+}
+
+.lobby-item-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 3px;
+}
+
+.lobby-name {
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  color: #c8daff;
+}
+
+.lobby-count {
+  font-size: 12px;
+  color: #7a9ee0;
+}
+
+.lobby-count.full { color: #ff7a7a; }
+.lobby-count.open { color: #7affaa; }
+
+.lobby-join-btn {
+  background: linear-gradient(180deg, #1e4a8a, #0c2244);
+  color: #c8daff;
+  border: 1px solid #4a82cc;
+  padding: 8px 16px;
+  font: inherit;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: transform 0.12s, filter 0.12s;
+  flex-shrink: 0;
+}
+
+.lobby-join-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.lobby-join-btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none; filter: none; }
+
+.lobby-status-msg {
+  margin: 0 0 12px;
+  min-height: 22px;
+  font-size: 13px;
+  color: #a8d8ff;
+  text-shadow: 0 0 8px rgba(140, 200, 255, 0.6);
+  letter-spacing: 0.5px;
+}
+
+.lobby-back-btn {
+  background: linear-gradient(180deg, #1a2a3e, #0a1420);
+  color: #8ab0d8;
+  border: 1px solid #3a5878;
+  padding: 8px 18px;
+  font: inherit;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: transform 0.12s, filter 0.12s;
+}
+
+.lobby-back-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+/* ── Multiplayer button in start menu ── */
+.mp-btn {
+  background: linear-gradient(180deg, #1e4a8a, #0a2244);
+  color: #c8dcff;
+  border: 1px solid #4a80cc;
+  padding: 10px 14px;
+  font: inherit;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-shadow: 0 0 8px rgba(140, 190, 255, 0.65);
+  transition: transform 0.14s ease, filter 0.14s ease;
+}
+
+.mp-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+/* ── P2 mini HUD (top-left corner of arena) ── */
+.p2-hud {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px 5px 6px;
+  border: 1px solid #4a82cc;
+  background: rgba(4, 10, 26, 0.90);
+  pointer-events: none;
+}
+
+.p2-hud.hidden { display: none; }
+
+.p2-portrait-frame {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #3a68b0;
+  background: #010610;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.p2-portrait-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: hue-rotate(200deg) saturate(1.2) brightness(0.9);
+}
+
+.p2-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.p2-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #7ab8ff;
+  text-shadow: 0 0 8px rgba(100, 170, 255, 0.6);
+}
+
+.p2-pips {
+  display: flex;
+  gap: 5px;
+}
+
 /* ── Bonus queue HUD (corner overlay in arena) ── */
 .bonus-queue-hud {
   position: absolute;
