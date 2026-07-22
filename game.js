@@ -1,5 +1,14 @@
 const canvas = document.getElementById('gameCanvas');
+if (!canvas) {
+  console.error('❌ Canvas element not found!');
+  throw new Error('Canvas element with id "gameCanvas" not found');
+}
 const ctx = canvas.getContext('2d');
+if (!ctx) {
+  console.error('❌ Canvas context failed!');
+  throw new Error('Failed to get 2D context from canvas');
+}
+console.log('✓ Canvas initialized:', canvas.width, 'x', canvas.height);
 
 const scoreEl = document.getElementById('score');
 const waveEl = document.getElementById('wave');
@@ -1494,18 +1503,21 @@ function restartGame() {
   document.body.classList.remove('ultimate-mode');
   document.body.classList.remove('wave-quake');
   updatePips();
-  renderP2Hud();
   generateObstacles();
 }
 
 function startGame() {
+  console.log('🎮 startGame() called');
   restartGame();
+  console.log('✓ restartGame() completed, obstacles count:', state.obstacles.length);
   if (startMenuEl) {
     startMenuEl.classList.add('hidden');
+    console.log('✓ Menu hidden');
   }
   setBackgroundTrack('normal', true);
   ensureKimbaAudioReady().catch(() => {});
   startWave(1, performance.now());
+  console.log('✓ Wave 1 started');
 }
 
 function movePlayer(dt) {
@@ -2032,6 +2044,9 @@ function drawDistortion(now) {
 }
 
 function drawObstacles() {
+  if (state.obstacles.length === 0 && state.started) {
+    console.warn('⚠️ drawObstacles: No obstacles to draw!');
+  }
   for (const obstacle of state.obstacles) {
     drawObstacle(obstacle);
   }
@@ -2611,11 +2626,13 @@ function tick(now) {
 }
 
 function init() {
+  console.log('🔧 init() called - Initializing game');
   resizeCanvas();
   setupInput();
   updatePips();
   renderBonusGuide();
   applyGameVolume();
+  console.log('✓ init() completed');
 
   if (startButtonEl) {
     startButtonEl.addEventListener('click', startGame);

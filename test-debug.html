@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Test</title>
+</head>
+<body>
+  <h1>Testing Game Loading</h1>
+  <p>Open browser console to see any errors</p>
+  
+  <script>
+    // Test if all required files are loaded
+    console.log('Testing game initialization...');
+    
+    // Check if GameUtils is available
+    window.addEventListener('load', function() {
+      console.log('Page loaded');
+      console.log('GameUtils available:', typeof window.GameUtils);
+      
+      // Test canvas
+      const canvas = document.getElementById('gameCanvas');
+      console.log('Canvas element:', canvas);
+      
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        console.log('Canvas context:', ctx);
+      }
+    });
+  </script>
+  
+  <script src="game-utils.js"></script>
+  <script src="input-system.js"></script>
+  <script src="powerup-system.js"></script>
+  <script src="game.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <canvas id="gameCanvas" width="1240" height="760"></canvas>
+</body>
+</html>
