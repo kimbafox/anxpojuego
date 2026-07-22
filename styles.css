@@ -64,7 +64,7 @@ body::before {
 
 .game-shell {
   position: relative;
-  z-index: 2;
+  z-index: 10;
   height: 100%;
   display: grid;
   grid-template-columns: 1fr 280px;
@@ -499,7 +499,10 @@ body.wave-quake .game-shell {
 
 .start-menu.hidden {
   display: none !important;
-  pointer-events: none;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 
 .start-card {
