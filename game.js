@@ -2188,22 +2188,6 @@ function drawEnemies() {
       }
     }
 
-    ctx.fillStyle = '#efff93';
-    ctx.fillRect(-2 * px, -1 * px, px, px);
-    ctx.fillRect(1 * px, -1 * px, px, px);
-    ctx.fillStyle = '#1b1b1b';
-    ctx.fillRect(-2 * px, -1 * px, px * 0.55, px * 0.55);
-    ctx.fillRect(1.45 * px, -1 * px, px * 0.55, px * 0.55);
-
-    ctx.fillStyle = '#17061f';
-    ctx.fillRect(-2 * px, px, 4 * px, px);
-    ctx.fillStyle = '#ff6ea8';
-    for (let m = -2; m <= 1; m += 1) {
-      if (m % 2 === 0) {
-        ctx.fillRect(m * px, px * 1.2, px * 0.45, px * 0.7);
-      }
-    }
-
     ctx.restore();
 
     if (e.maxHp > 1) {
