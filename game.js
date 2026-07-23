@@ -1097,6 +1097,39 @@ function spawnEnemy() {
   state.enemies.push(enemy);
 }
 
+function spawnMiniBoss() {
+  const side = Math.floor(rand(0, 4));
+  const radius = 34;
+  const boss = {
+    x: 0,
+    y: 0,
+    radius,
+    speed: rand(32, 46) + state.wave * 1.6,
+    kind: 'miniBoss',
+    hp: 20,
+    maxHp: 20,
+    fireTimer: 0,
+    fireInterval: 10,
+    scoreValue: 50
+  };
+
+  if (side === 0) {
+    boss.x = -boss.radius;
+    boss.y = rand(0, canvas.height);
+  } else if (side === 1) {
+    boss.x = canvas.width + boss.radius;
+    boss.y = rand(0, canvas.height);
+  } else if (side === 2) {
+    boss.x = rand(0, canvas.width);
+    boss.y = -boss.radius;
+  } else {
+    boss.x = rand(0, canvas.width);
+    boss.y = canvas.height + boss.radius;
+  }
+
+  state.enemies.push(boss);
+}
+
 function pickRandomPowerupType() {
   return window.GamePowerupSystem.pickRandomPowerupType(rand);
 }
@@ -1172,6 +1205,12 @@ function startWave(wave, now) {
     document.body.classList.add('wave-quake');
   }
   playWaveAnnouncement(safeWave, now);
+
+  if ((safeWave === 5 || safeWave === 8) && !state.boss) {
+    spawnMiniBoss();
+    spawnMiniBoss();
+    statusTextEl.textContent = 'Estado: MINIJEFES EN CAMPO';
+  }
 
   if (safeWave >= 10 && !state.boss) {
     spawnBoss();
@@ -1871,6 +1910,27 @@ function updateEnemies(dt, now) {
     spawnEnemy();
   }
 
+  for (const e of state.enemies) {
+    if (e.kind === 'miniBoss') {
+      e.fireTimer += dt;
+      if (e.fireTimer >= e.fireInterval) {
+        e.fireTimer = 0;
+        state.enemyBullets.push({
+          x: e.x,
+          y: e.y,
+          vx: 0,
+          vy: 0,
+          r: 12,
+          destructible: true,
+          homing: true,
+          homingSpeed: 145,
+          turnRate: 2.4,
+          bornAt: now
+        });
+      }
+    }
+  }
+
   if (state.kills >= 50) {
     state.enemyFireTimer += dt;
     if (state.enemyFireTimer >= 1.5 && state.enemies.length > 0) {
@@ -1909,8 +1969,9 @@ function updateEnemies(dt, now) {
         state.bullets.splice(j, 1);
 
         if (e.hp <= 0) {
+          const value = e.scoreValue || 1;
           state.enemies.splice(i, 1);
-          state.score += 1;
+          state.score += value;
           state.kills += 1;
           player.radius = playerRadiusByScore();
           checkWaveProgression(now);
@@ -1933,8 +1994,10 @@ function updateEnemies(dt, now) {
 
     const touch = distSq(aliveEnemy, player) < (aliveEnemy.radius + player.radius) ** 2;
     if (touch) {
-      state.enemies.splice(i, 1);
       applyDamage(now);
+      if (aliveEnemy.kind !== 'miniBoss') {
+        state.enemies.splice(i, 1);
+      }
     }
   }
 }
@@ -2169,6 +2232,75 @@ function drawEnemyBullets() {
 
 function drawEnemies() {
   for (const e of state.enemies) {
+    if (e.kind === 'miniBoss') {
+      const t = performance.now() * 0.003 + e.x * 0.01 + e.y * 0.008;
+      const teethCount = 10;
+      const eyeOffset = e.radius * 0.28;
+      const eyeSize = e.radius * 0.18;
+
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.beginPath();
+      const gradient = ctx.createRadialGradient(-e.radius * 0.25, -e.radius * 0.25, 2, 0, 0, e.radius);
+      gradient.addColorStop(0, '#333');
+      gradient.addColorStop(1, '#050505');
+      ctx.fillStyle = gradient;
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 10;
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      for (let i = 0; i < teethCount; i += 1) {
+        const angle = (Math.PI + (Math.PI * i) / (teethCount - 1));
+        const toothWidth = e.radius * 0.12;
+        const toothHeight = e.radius * 0.28;
+        const tx = Math.cos(angle) * (e.radius * 0.74);
+        const ty = Math.sin(angle) * (e.radius * 0.74);
+        ctx.fillStyle = '#f7f7f7';
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx + Math.cos(angle - 0.12) * toothWidth, ty + Math.sin(angle - 0.12) * toothWidth);
+        ctx.lineTo(tx + Math.cos(angle + 0.12) * toothWidth, ty + Math.sin(angle + 0.12) * toothWidth);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.fillStyle = '#120f12';
+      ctx.ellipse(0, e.radius * 0.12, e.radius * 0.84, e.radius * 0.44, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const blink = Math.floor(performance.now() / 390) % 2 === 0;
+      ctx.fillStyle = '#f5f5f5';
+      ctx.beginPath();
+      ctx.arc(-eyeOffset, -e.radius * 0.14, eyeSize, 0, Math.PI * 2);
+      ctx.arc(eyeOffset, -e.radius * 0.14, eyeSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#1f1f1f';
+      ctx.beginPath();
+      ctx.arc(-eyeOffset + (blink ? 0 : -eyeSize * 0.08), -e.radius * 0.16, eyeSize * 0.42, 0, Math.PI * 2);
+      ctx.arc(eyeOffset + (blink ? 0 : eyeSize * 0.08), -e.radius * 0.16, eyeSize * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      const barW = e.radius * 2.2;
+      const barH = 5;
+      const ratio = e.hp / e.maxHp;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 14, barW, barH);
+      ctx.fillStyle = '#ffcb53';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 14, barW * ratio, barH);
+      continue;
+    }
+
     const t = performance.now() * 0.005 + e.x * 0.015 + e.y * 0.012;
     const px = Math.max(2, Math.floor(e.radius * 0.22));
 
