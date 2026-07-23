@@ -1130,6 +1130,42 @@ function spawnMiniBoss() {
   state.enemies.push(boss);
 }
 
+function spawnSmallEye() {
+  const side = Math.floor(rand(0, 4));
+  const eye = {
+    x: 0,
+    y: 0,
+    radius: 16,
+    speed: rand(22, 30),
+    kind: 'smallEye',
+    hp: 10,
+    maxHp: 10,
+    scoreValue: 12
+  };
+
+  if (side === 0) {
+    eye.x = -eye.radius;
+    eye.y = rand(0, canvas.height);
+  } else if (side === 1) {
+    eye.x = canvas.width + eye.radius;
+    eye.y = rand(0, canvas.height);
+  } else if (side === 2) {
+    eye.x = rand(0, canvas.width);
+    eye.y = -eye.radius;
+  } else {
+    eye.x = rand(0, canvas.width);
+    eye.y = canvas.height + eye.radius;
+  }
+
+  state.enemies.push(eye);
+}
+
+function spawnSmallEyes(count = 2) {
+  for (let i = 0; i < count; i += 1) {
+    spawnSmallEye();
+  }
+}
+
 function pickRandomPowerupType() {
   return window.GamePowerupSystem.pickRandomPowerupType(rand);
 }
@@ -1210,6 +1246,11 @@ function startWave(wave, now) {
     spawnMiniBoss();
     spawnMiniBoss();
     statusTextEl.textContent = 'Estado: MINIJEFES EN CAMPO';
+  }
+
+  if ((safeWave === 6 || safeWave === 9) && !state.boss) {
+    spawnSmallEyes(2);
+    statusTextEl.textContent = 'Estado: OJITOS EN CAMPO';
   }
 
   if (safeWave >= 10 && !state.boss) {
@@ -1674,7 +1715,7 @@ function updateEnemyBullets(dt, now) {
       remove = true;
     }
 
-    if (!remove) {
+    if (!remove && !b.ignoreObstacles) {
       for (const obstacle of state.obstacles) {
         const polygon = getObstaclePolygon(obstacle);
         if (circleIntersectsPolygon(b.x, b.y, b.r, polygon)) {
@@ -1920,12 +1961,13 @@ function updateEnemies(dt, now) {
           y: e.y,
           vx: 0,
           vy: 0,
-          r: 12,
+          r: 14,
           destructible: true,
           homing: true,
-          homingSpeed: 145,
-          turnRate: 2.4,
-          bornAt: now
+          homingSpeed: 160,
+          turnRate: 2.5,
+          bornAt: now,
+          ignoreObstacles: true
         });
       }
     }
@@ -2254,7 +2296,6 @@ function drawEnemies() {
       for (let i = 0; i < teethCount; i += 1) {
         const angle = (Math.PI + (Math.PI * i) / (teethCount - 1));
         const toothWidth = e.radius * 0.12;
-        const toothHeight = e.radius * 0.28;
         const tx = Math.cos(angle) * (e.radius * 0.74);
         const ty = Math.sin(angle) * (e.radius * 0.74);
         ctx.fillStyle = '#f7f7f7';
@@ -2298,6 +2339,51 @@ function drawEnemies() {
       ctx.fillRect(e.x - barW / 2, e.y - e.radius - 14, barW, barH);
       ctx.fillStyle = '#ffcb53';
       ctx.fillRect(e.x - barW / 2, e.y - e.radius - 14, barW * ratio, barH);
+      continue;
+    }
+
+    if (e.kind === 'smallEye') {
+      const glare = Math.sin(performance.now() * 0.01) * 0.1 + 0.9;
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.beginPath();
+      const eyeGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, e.radius);
+      eyeGrad.addColorStop(0, '#ffffff');
+      eyeGrad.addColorStop(0.4, '#d8f8ff');
+      eyeGrad.addColorStop(1, '#7fd8ff');
+      ctx.fillStyle = eyeGrad;
+      ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fillStyle = eyeGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#5ea5c4';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.fillStyle = '#1a1a1f';
+      ctx.arc(0, 0, e.radius * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = '#86d7ff';
+      ctx.arc(0, 0, e.radius * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.46 * glare})`;
+      ctx.arc(-e.radius * 0.18, -e.radius * 0.18, e.radius * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      const barW = e.radius * 1.8;
+      const barH = 4;
+      const ratio = e.hp / e.maxHp;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 12, barW, barH);
+      ctx.fillStyle = '#8dd6ff';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 12, barW * ratio, barH);
       continue;
     }
 
