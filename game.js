@@ -108,42 +108,42 @@ const POWERUP_DEFS = {
     type: 'double',
     src: 'assets/conquistadorarmor.png',
     display: 'conquistadorarmor',
-    duration: 20000,
+    duration: 28000,
     rarity: 1
   },
   bigBullets: {
     type: 'bigBullets',
     src: 'assets/eruditomor.png',
     display: 'eruditomor',
-    duration: 20000,
+    duration: 28000,
     rarity: 1
   },
   speed: {
     type: 'speed',
     src: 'assets/exterminadorarmor.png',
     display: 'exterminadorarmor',
-    duration: 20000,
+    duration: 28000,
     rarity: 1
   },
   navelo: {
     type: 'navelo',
     src: 'assets/navelo.png',
     display: 'navelo',
-    duration: 4000,
+    duration: 12000,
     rarity: 1
   },
   pasmor: {
     type: 'pasmor',
     src: 'assets/pasmorr.png',
     display: 'pasmor',
-    duration: 4000,
+    duration: 12000,
     rarity: 1
   },
   voculos: {
     type: 'voculos',
     src: 'assets/voculos.png',
     display: 'voculos',
-    duration: 4000,
+    duration: 12000,
     rarity: 1
   },
   plebarmor: {
@@ -805,7 +805,7 @@ function bulletsPerShot() {
 }
 
 function playerRadiusByScore() {
-  return 10 + Math.min(20, Math.floor(state.score / 18));
+  return 12;
 }
 
 function bulletRadiusByPower() {
@@ -1358,7 +1358,6 @@ function fireViculosLaser(targetX, targetY, now) {
         state.enemies.splice(i, 1);
         state.score += 1;
         state.kills += 1;
-        player.radius = playerRadiusByScore();
         checkWaveProgression(now);
         if (state.boss) {
           break;
@@ -1560,7 +1559,6 @@ function updateUltimateAttack(dt, now) {
       state.enemies.splice(i, 1);
       state.score += 1;
       state.kills += 1;
-      player.radius = playerRadiusByScore();
       checkWaveProgression(now);
       if (state.boss) {
         break;
@@ -1671,7 +1669,7 @@ function restartGame() {
 
   player.x = canvas.width * 0.5;
   player.y = canvas.height * 0.5;
-  player.radius = playerRadiusByScore();
+  player.radius = 12;
 
   statusTextEl.textContent = 'Estado: En combate';
   if (pickupBannerEl) {
@@ -2220,7 +2218,6 @@ function updateEnemies(dt, now) {
           state.enemies.splice(i, 1);
           state.score += value;
           state.kills += 1;
-          player.radius = playerRadiusByScore();
           checkWaveProgression(now);
           if (state.boss) {
             return;

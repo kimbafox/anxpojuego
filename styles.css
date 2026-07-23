@@ -497,6 +497,36 @@ body.wave-quake .game-shell {
     linear-gradient(180deg, rgba(5, 20, 9, 0.72), rgba(0, 0, 0, 0.9));
 }
 
+.discord-corner-link {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 74px;
+  height: 74px;
+  border-radius: 12px;
+  border: 2px solid rgba(144, 255, 176, 0.9);
+  background: linear-gradient(180deg, rgba(6, 20, 10, 0.92), rgba(2, 8, 4, 0.95));
+  box-shadow: 0 0 16px rgba(95, 255, 143, 0.35), inset 0 0 14px rgba(95, 255, 143, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 3;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.discord-corner-link:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.1);
+  box-shadow: 0 0 22px rgba(118, 255, 162, 0.48), inset 0 0 14px rgba(122, 255, 167, 0.2);
+}
+
+.discord-corner-logo {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+}
+
 .start-menu.hidden {
   display: none !important;
 }
