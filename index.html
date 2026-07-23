@@ -19,34 +19,52 @@
     >
       <img src="assets/niveles audio/logo_oficial.png" alt="Logo oficial" class="discord-corner-logo">
     </a>
-    <div class="start-card">
-      <div class="start-layout">
-        <div class="start-copy">
-          <p class="start-kicker">EDICION SUPERVIVENCIA</p>
-          <h1>ANXPO VS ALL</h1>
-          <p class="start-lead">Sistema listo. Sobrevive a las oleadas y derrota al jefe final.</p>
-          <p class="start-controls">W/A/S/D mover · Mantener click disparar · R bonus · Q ultimo ataque</p>
-        </div>
-        <div class="start-portrait">
-          <div class="game-case-frame">
-            <img src="assets/watched.png" alt="Portada WATCHED" class="start-cover-image">
+    <div class="menu-layout">
+      <aside class="ranking-panel" aria-label="Ranking principal">
+        <h3>RANKING TOP 20</h3>
+        <p class="ranking-caption">Mas puntaje va arriba. Si empatan, gana el menor tiempo.</p>
+        <div id="rankingList" class="ranking-list" aria-live="polite"></div>
+      </aside>
+
+      <div class="start-card">
+        <div class="start-layout">
+          <div class="start-copy">
+            <p class="start-kicker">EDICION SUPERVIVENCIA</p>
+            <h1>ANXPO VS ALL</h1>
+            <p class="start-lead">Sistema listo. Sobrevive a las oleadas y derrota al jefe final.</p>
+            <p class="start-controls">W/A/S/D mover · Mantener click disparar · R bonus · Q ultimo ataque</p>
+          </div>
+          <div class="start-portrait">
+            <div class="game-case-frame">
+              <img src="assets/watched.png" alt="Portada WATCHED" class="start-cover-image">
+            </div>
           </div>
         </div>
+        <p class="start-controls">W/A/S/D mover · Mantener click disparar · R bonus · Q ultimo ataque</p>
+        <div class="volume-row">
+          <label for="volumeSlider" class="vol-label">VOLUMEN</label>
+          <input id="volumeSlider" type="range" min="0" max="100" value="55" class="vol-slider">
+          <span id="volumeValue" class="vol-val">55%</span>
+        </div>
+        <div id="discordUserBadge" class="discord-user-badge hidden" aria-live="polite">
+          <img id="discordUserAvatar" src="" alt="Avatar de Discord">
+          <div class="discord-user-meta">
+            <strong id="discordUserName">No conectado</strong>
+            <span>Tu puntaje final se guarda al terminar la partida.</span>
+          </div>
+        </div>
+        <div class="start-actions">
+          <button id="startButton" type="button">INICIAR</button>
+          <button id="discordLoginButton" type="button">CONECTAR DISCORD</button>
+          <button id="discordLogoutButton" type="button" class="hidden">DESCONECTAR DISCORD</button>
+          <button id="bonusInfoButton" type="button">VER BONUS</button>
+        </div>
+        <p id="rankingNotice" class="ranking-notice">Conecta Discord para guardar tu puntaje y tiempo en el ranking.</p>
+        <section id="bonusGuidePanel" class="bonus-guide-panel hidden" aria-label="Informacion de bonus">
+          <h3>INFORMACION DE BONUS</h3>
+          <div id="bonusGuideList" class="bonus-guide-list"></div>
+        </section>
       </div>
-      <p class="start-controls">W/A/S/D mover · Mantener click disparar · R bonus · Q ultimo ataque</p>
-      <div class="volume-row">
-        <label for="volumeSlider" class="vol-label">VOLUMEN</label>
-        <input id="volumeSlider" type="range" min="0" max="100" value="55" class="vol-slider">
-        <span id="volumeValue" class="vol-val">55%</span>
-      </div>
-      <div class="start-actions">
-        <button id="startButton" type="button">INICIAR</button>
-        <button id="bonusInfoButton" type="button">VER BONUS</button>
-      </div>
-      <section id="bonusGuidePanel" class="bonus-guide-panel hidden" aria-label="Informacion de bonus">
-        <h3>INFORMACION DE BONUS</h3>
-        <div id="bonusGuideList" class="bonus-guide-list"></div>
-      </section>
     </div>
   </section>
 

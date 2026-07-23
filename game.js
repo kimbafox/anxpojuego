@@ -35,6 +35,15 @@ const bonusQueueHudEl = document.getElementById('bonusQueueHud');
 const menuButtonEl = document.getElementById('menuButton');
 const volumeSliderEl = document.getElementById('volumeSlider');
 const volumeValueEl = document.getElementById('volumeValue');
+const rankingListEl = document.getElementById('rankingList');
+const rankingNoticeEl = document.getElementById('rankingNotice');
+const discordLoginButtonEl = document.getElementById('discordLoginButton');
+const discordLogoutButtonEl = document.getElementById('discordLogoutButton');
+const discordUserBadgeEl = document.getElementById('discordUserBadge');
+const discordUserAvatarEl = document.getElementById('discordUserAvatar');
+const discordUserNameEl = document.getElementById('discordUserName');
+
+const lobbyMenuEl = document.getElementById('lobbyMenu');
 
 const { clamp, rand, distSq, makeDistortionCurve } = window.GameUtils;
 const MAX_LIVES = 5;
@@ -234,8 +243,154 @@ const state = {
   shakeUntil: 0,
   shakePower: 0,
   startedAt: 0,
-  endedAt: 0
+  endedAt: 0,
+  resultPosted: false,
+  resultPosting: false
 };
+
+const authState = {
+  user: null
+};
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatRankingTime(ms) {
+  const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+async function apiJson(url, options = {}) {
+  const response = await fetch(url, options);
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (_) {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data && data.error ? data.error : 'Error de red';
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+function updateDiscordUi() {
+  const user = authState.user;
+  const isAuthed = Boolean(user && user.username);
+
+  if (discordLoginButtonEl) {
+    discordLoginButtonEl.classList.toggle('hidden', isAuthed);
+  }
+  if (discordLogoutButtonEl) {
+    discordLogoutButtonEl.classList.toggle('hidden', !isAuthed);
+  }
+
+  if (discordUserBadgeEl && discordUserAvatarEl && discordUserNameEl) {
+    discordUserBadgeEl.classList.toggle('hidden', !isAuthed);
+    if (isAuthed) {
+      discordUserAvatarEl.src = user.avatarUrl;
+      discordUserNameEl.textContent = user.username;
+    }
+  }
+
+  if (rankingNoticeEl) {
+    rankingNoticeEl.textContent = isAuthed
+      ? 'Listo. Tu resultado se guarda automaticamente al terminar la partida.'
+      : 'Conecta Discord para guardar tu puntaje y tiempo en el ranking.';
+  }
+}
+
+function renderRanking(ranking) {
+  if (!rankingListEl) {
+    return;
+  }
+
+  if (!Array.isArray(ranking) || ranking.length === 0) {
+    rankingListEl.innerHTML = '<div class="ranking-empty">Aun no hay jugadores en el ranking.</div>';
+    return;
+  }
+
+  rankingListEl.innerHTML = ranking.map((entry, idx) => {
+    const pos = idx + 1;
+    const name = escapeHtml(entry.username || 'Jugador');
+    const score = Number(entry.score) || 0;
+    const time = formatRankingTime(entry.elapsedMs);
+    const avatar = escapeHtml(entry.avatarUrl || '');
+    return `<article class="ranking-entry">
+      <span class="ranking-pos">#${pos}</span>
+      <img class="ranking-avatar" src="${avatar}" alt="Avatar ${name}">
+      <div class="ranking-meta">
+        <p class="ranking-name">${name}</p>
+        <p class="ranking-sub">Tiempo ${time}</p>
+      </div>
+      <strong class="ranking-score">${score}</strong>
+    </article>`;
+  }).join('');
+}
+
+async function refreshRanking() {
+  try {
+    const data = await apiJson('/api/ranking');
+    renderRanking(data.ranking || []);
+  } catch (_) {
+    if (rankingListEl) {
+      rankingListEl.innerHTML = '<div class="ranking-empty">No se pudo cargar el ranking.</div>';
+    }
+  }
+}
+
+async function refreshDiscordSession() {
+  try {
+    const data = await apiJson('/api/discord/me');
+    authState.user = data && data.authenticated ? data.user : null;
+  } catch (_) {
+    authState.user = null;
+  }
+  updateDiscordUi();
+}
+
+async function postResultOnce() {
+  if (state.resultPosted || state.resultPosting || !state.started || state.running || !authState.user) {
+    return;
+  }
+
+  const ended = state.endedAt || performance.now();
+  const elapsedMs = Math.max(0, Math.floor(ended - state.startedAt));
+
+  try {
+    state.resultPosting = true;
+    await apiJson('/api/ranking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        score: state.score,
+        elapsedMs
+      })
+    });
+    state.resultPosted = true;
+    await refreshRanking();
+    if (rankingNoticeEl) {
+      rankingNoticeEl.textContent = 'Puntaje guardado en el ranking.';
+    }
+  } catch (err) {
+    if (rankingNoticeEl) {
+      rankingNoticeEl.textContent = `No se pudo guardar: ${err.message}`;
+    }
+  } finally {
+    state.resultPosting = false;
+  }
+}
 
 const player = {
   x: canvas.width * 0.5,
@@ -523,6 +678,8 @@ function goToMenu() {
   if (bonusQueueHudEl) {
     bonusQueueHudEl.classList.add('hidden');
   }
+  refreshRanking();
+  refreshDiscordSession();
 }
 
 function getNextRBonuses() {
@@ -1666,6 +1823,8 @@ function restartGame() {
   state.shakePower = 0;
   state.startedAt = performance.now();
   state.endedAt = 0;
+  state.resultPosted = false;
+  state.resultPosting = false;
 
   player.x = canvas.width * 0.5;
   player.y = canvas.height * 0.5;
@@ -3175,6 +3334,10 @@ function tick(now) {
     updateUltimateAttack(dt, now);
   }
 
+  if (!state.running && state.started) {
+    postResultOnce();
+  }
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   let shakeX = 0;
@@ -3225,6 +3388,23 @@ function init() {
     startButtonEl.addEventListener('click', startGame);
   }
 
+  if (discordLoginButtonEl) {
+    discordLoginButtonEl.addEventListener('click', () => {
+      window.location.href = '/api/discord/login';
+    });
+  }
+
+  if (discordLogoutButtonEl) {
+    discordLogoutButtonEl.addEventListener('click', async () => {
+      try {
+        await apiJson('/api/discord/logout', { method: 'POST' });
+      } catch (_) {}
+      authState.user = null;
+      updateDiscordUi();
+      refreshRanking();
+    });
+  }
+
   if (bonusInfoButtonEl && bonusGuidePanelEl) {
     bonusInfoButtonEl.setAttribute('aria-expanded', 'false');
     bonusInfoButtonEl.addEventListener('click', () => {
@@ -3250,6 +3430,8 @@ function init() {
   }
 
   statusTextEl.textContent = 'Estado: Esperando inicio';
+  refreshDiscordSession();
+  refreshRanking();
   requestAnimationFrame(tick);
 }
 

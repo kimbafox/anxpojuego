@@ -531,6 +531,181 @@ body.wave-quake .game-shell {
   display: none !important;
 }
 
+.menu-layout {
+  width: min(96vw, 980px);
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(320px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.ranking-panel {
+  background: linear-gradient(180deg, rgba(7, 24, 12, 0.96), rgba(2, 8, 4, 0.98));
+  border: 2px solid #43d170;
+  box-shadow: 0 0 34px rgba(95, 255, 143, 0.27), inset 0 0 30px rgba(95, 255, 143, 0.09);
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 520px;
+}
+
+.ranking-panel h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #b8ffcb;
+  letter-spacing: 1.3px;
+}
+
+.ranking-caption {
+  margin: 6px 0 10px;
+  color: #9fe6b2;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.ranking-list {
+  display: grid;
+  gap: 6px;
+}
+
+.ranking-entry {
+  display: grid;
+  grid-template-columns: 26px 44px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid #236c3f;
+  background: rgba(0, 12, 5, 0.74);
+}
+
+.ranking-pos {
+  color: #b3ffca;
+  font-size: 11px;
+}
+
+.ranking-avatar {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #53ff93;
+  background: #010501;
+  image-rendering: pixelated;
+  object-fit: cover;
+  filter: contrast(1.2) saturate(1.2);
+}
+
+.ranking-meta {
+  min-width: 0;
+}
+
+.ranking-name {
+  margin: 0;
+  color: #d5ffe2;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ranking-sub {
+  margin: 2px 0 0;
+  color: #91d9a7;
+  font-size: 10px;
+}
+
+.ranking-score {
+  color: #9dffbc;
+  font-size: 12px;
+  text-align: right;
+}
+
+.ranking-empty {
+  border: 1px dashed #2a8450;
+  background: rgba(0, 14, 6, 0.54);
+  color: #a4e4b7;
+  text-align: center;
+  padding: 14px;
+  font-size: 12px;
+}
+
+.discord-user-badge {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #2d8a50;
+  background: rgba(0, 12, 5, 0.68);
+}
+
+.discord-user-badge img {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #56ffa6;
+  background: #010501;
+  image-rendering: pixelated;
+  object-fit: cover;
+  filter: saturate(1.25) contrast(1.24);
+}
+
+.discord-user-meta strong {
+  display: block;
+  color: #cdffe1;
+  font-size: 12px;
+}
+
+.discord-user-meta span {
+  display: block;
+  color: #95dbaa;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.ranking-notice {
+  margin: 8px 0 4px;
+  color: #9edfb2;
+  font-size: 11px;
+  text-align: left;
+}
+
+#discordLoginButton {
+  background: linear-gradient(180deg, #4f6dff, #2439a8);
+  color: #e6ebff;
+  border: 2px solid #9db1ff;
+  padding: 10px 12px;
+  font: inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-shadow: 0 0 8px rgba(165, 198, 255, 0.8);
+  transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 13px;
+  box-shadow: 0 0 16px rgba(138, 176, 255, 0.3);
+}
+
+#discordLoginButton:hover {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(138, 176, 255, 0.4);
+}
+
+#discordLogoutButton {
+  background: linear-gradient(180deg, #43503f, #1c271a);
+  color: #daf1dd;
+  border: 2px solid #81a885;
+  padding: 10px 12px;
+  font: inherit;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+#discordLogoutButton:hover {
+  filter: brightness(1.15);
+}
+
 .start-card {
   width: min(90vw, 420px);
   background: linear-gradient(180deg, rgba(7, 24, 12, 0.96), rgba(2, 8, 4, 0.98));
@@ -1120,6 +1295,15 @@ body.wave-quake .game-shell {
 
   .start-card {
     width: min(94vw, 390px);
+  }
+
+  .menu-layout {
+    width: min(96vw, 560px);
+    grid-template-columns: 1fr;
+  }
+
+  .ranking-panel {
+    min-height: 0;
   }
 
   .start-actions {
