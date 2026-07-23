@@ -64,6 +64,9 @@ kimbaSpectroImage.src = 'assets/kimbaespectro.png';
 const ultimateLogoImage = new Image();
 ultimateLogoImage.src = 'assets/niveles audio/logo_oficial.png';
 
+const realityBossImage = new Image();
+realityBossImage.src = 'assets/jefinal.png';
+
 const kimbaAudio = new Audio('assets/papa dios.wav');
 kimbaAudio.preload = 'auto';
 const kimbaPlusAudio = new Audio('assets/niveles audio/kimba plus.wav');
@@ -180,6 +183,7 @@ const state = {
   score: 0,
   kills: 0,
   wave: 1,
+  waveLabel: '',
   lives: 3,
   keys: new Set(),
   bullets: [],
@@ -188,6 +192,7 @@ const state = {
   obstacles: [],
   powerups: [],
   boss: null,
+  realityRays: [],
   mouse: { x: canvas.width * 0.5, y: canvas.height * 0.5 },
   mouseHeld: false,
   spawnTimer: 0,
@@ -577,11 +582,13 @@ function jumpToBoss(now) {
   state.running = true;
   state.win = false;
   state.wave = 10;
+  state.waveLabel = '';
   state.kills = Math.max(state.kills, 270);
   state.enemies = [];
   state.enemyBullets = [];
   state.powerups = [];
   state.boss = null;
+  state.realityRays = [];
 
   startWave(10, now || performance.now());
   statusTextEl.textContent = 'Estado: Salto de prueba al JEFE FINAL';
@@ -870,7 +877,7 @@ function getDistortionAmount(now) {
   return clamp(base + hitBoost, 0, 0.98);
 }
 
-function applyDamage(now) {
+function applyDamage(now, amount = 1) {
   if (now <= state.iFramesUntil || !state.running) {
     return;
   }
@@ -885,7 +892,7 @@ function applyDamage(now) {
 
   playHurtSound();
 
-  state.lives -= 1;
+  state.lives -= amount;
   state.damageCount += 1;
   state.iFramesUntil = now + 1200;
   setPortraitHit();
@@ -1166,6 +1173,41 @@ function spawnSmallEyes(count = 2) {
   }
 }
 
+function spawnViperMiniBoss() {
+  const side = Math.floor(rand(0, 4));
+  const heading = rand(0, Math.PI * 2);
+  const viper = {
+    x: 0,
+    y: 0,
+    radius: 22,
+    speed: 220,
+    kind: 'viperBoss',
+    hp: 6,
+    maxHp: 6,
+    scoreValue: 40,
+    vx: Math.cos(heading),
+    vy: Math.sin(heading),
+    tackleTimer: 0,
+    tackleUntil: 0
+  };
+
+  if (side === 0) {
+    viper.x = -viper.radius;
+    viper.y = rand(0, canvas.height);
+  } else if (side === 1) {
+    viper.x = canvas.width + viper.radius;
+    viper.y = rand(0, canvas.height);
+  } else if (side === 2) {
+    viper.x = rand(0, canvas.width);
+    viper.y = -viper.radius;
+  } else {
+    viper.x = rand(0, canvas.width);
+    viper.y = canvas.height + viper.radius;
+  }
+
+  state.enemies.push(viper);
+}
+
 function pickRandomPowerupType() {
   return window.GamePowerupSystem.pickRandomPowerupType(rand);
 }
@@ -1248,6 +1290,11 @@ function startWave(wave, now) {
     statusTextEl.textContent = 'Estado: MINIJEFES EN CAMPO';
   }
 
+  if ((safeWave === 4 || safeWave === 7) && !state.boss) {
+    spawnViperMiniBoss();
+    statusTextEl.textContent = 'Estado: VIBORA EN CAMPO';
+  }
+
   if ((safeWave === 6 || safeWave === 9) && !state.boss) {
     spawnSmallEyes(2);
     statusTextEl.textContent = 'Estado: OJITOS EN CAMPO';
@@ -1325,13 +1372,76 @@ function fireViculosLaser(targetX, targetY, now) {
     if (distToBoss <= state.boss.radius + 8) {
       state.boss.hp -= 6;
       if (state.boss.hp <= 0) {
-        state.boss = null;
-        state.running = false;
-        state.win = true;
-        statusTextEl.textContent = 'Estado: Victoria total';
+        resolveBossDefeat(now);
       }
     }
   }
+}
+
+function createRandomRealityRay(now) {
+  const cx = rand(120, canvas.width - 120);
+  const cy = rand(100, canvas.height - 100);
+  const angle = rand(0, Math.PI * 2);
+  const len = Math.max(canvas.width, canvas.height) * 1.25;
+  const ux = Math.cos(angle);
+  const uy = Math.sin(angle);
+
+  return {
+    x1: cx - ux * len,
+    y1: cy - uy * len,
+    x2: cx + ux * len,
+    y2: cy + uy * len,
+    warnUntil: now + 1300,
+    strikeUntil: now + 2100,
+    damage: 2
+  };
+}
+
+function spawnRealityBoss(now) {
+  state.wave = 11;
+  state.waveLabel = 'LA TRELAIDAD';
+  state.enemies = [];
+  state.enemyBullets = [];
+  state.powerups = [];
+  state.realityRays = [];
+  state.boss = {
+    kind: 'realityBoss',
+    x: canvas.width * 0.5,
+    y: canvas.height * 0.28,
+    radius: 82,
+    hp: 300,
+    maxHp: 300,
+    fireTimer: 0,
+    rayTimer: 0,
+    distortTick: 0,
+    driftAngle: rand(0, Math.PI * 2)
+  };
+
+  state.waveBannerText = 'LA TRELAIDAD';
+  state.waveBannerUntil = now + 3500;
+  if (waveBannerEl) {
+    waveBannerEl.textContent = state.waveBannerText;
+    waveBannerEl.classList.add('show', 'pulse');
+  }
+  statusTextEl.textContent = 'Estado: LA TRELAlDAD DESPIERTA';
+}
+
+function resolveBossDefeat(now) {
+  if (!state.boss) {
+    return;
+  }
+
+  if (state.boss.kind === 'realityBoss') {
+    state.boss = null;
+    state.realityRays = [];
+    state.running = false;
+    state.win = true;
+    state.endedAt = now;
+    statusTextEl.textContent = 'Estado: Victoria total';
+    return;
+  }
+
+  spawnRealityBoss(now);
 }
 
 function spawnBoss() {
@@ -1343,6 +1453,7 @@ function spawnBoss() {
   state.enemyBullets = [];
   state.powerups = [];
   state.boss = {
+    kind: 'finalBoss',
     x: canvas.width * 0.5,
     y: -120,
     radius: 86,
@@ -1464,11 +1575,7 @@ function updateUltimateAttack(dt, now) {
     if (inHorizontal || inVertical) {
       b.hp -= 4;
       if (b.hp <= 0) {
-        state.boss = null;
-        state.running = false;
-        state.win = true;
-        state.endedAt = now;
-        statusTextEl.textContent = 'Estado: Victoria total';
+        resolveBossDefeat(now);
       }
     }
   }
@@ -1512,6 +1619,7 @@ function restartGame() {
   state.score = 0;
   state.kills = 0;
   state.wave = 1;
+  state.waveLabel = '';
   state.lives = 3;
   state.keys.clear();
   state.mouseHeld = false;
@@ -1521,6 +1629,7 @@ function restartGame() {
   state.p2Bullets = [];
   state.powerups = [];
   state.boss = null;
+  state.realityRays = [];
   state.obstacles = [];
   state.spawnTimer = 0;
   state.spawnInterval = 1.15;
@@ -1675,7 +1784,11 @@ function updateBullets(dt) {
         }
         if (distSq(b, eb) < (b.r + eb.r) ** 2) {
           remove = true;
-          state.enemyBullets.splice(j, 1);
+          if ((eb.hp || 1) > 1) {
+            eb.hp -= 1;
+          } else {
+            state.enemyBullets.splice(j, 1);
+          }
           break;
         }
       }
@@ -1727,7 +1840,7 @@ function updateEnemyBullets(dt, now) {
 
     if (!remove && distSq(b, player) < (b.r + player.radius) ** 2) {
       remove = true;
-      applyDamage(now);
+      applyDamage(now, b.damageAmount || 1);
     }
 
     if (remove) {
@@ -1824,6 +1937,77 @@ function getLaserEndpointAgainstObstacles(ax, ay, angle, maxLen) {
 function updateEnemies(dt, now) {
   if (state.boss) {
     const b = state.boss;
+
+    if (b.kind === 'realityBoss') {
+      b.fireTimer += dt;
+      b.rayTimer += dt;
+      b.distortTick += dt;
+      b.driftAngle += dt * 0.9;
+
+      b.x = canvas.width * 0.5 + Math.cos(b.driftAngle) * 160;
+      b.y = canvas.height * 0.26 + Math.sin(b.driftAngle * 1.4) * 56;
+      b.x = clamp(b.x, b.radius, canvas.width - b.radius);
+      b.y = clamp(b.y, b.radius, canvas.height * 0.45);
+
+      if (b.fireTimer >= 1.45) {
+        b.fireTimer = 0;
+        const baseAngle = Math.atan2(player.y - b.y, player.x - b.x);
+        for (let k = 0; k < 2; k += 1) {
+          const spread = (k - 0.5) * 0.18;
+          const angle = baseAngle + spread;
+          state.enemyBullets.push({
+            x: b.x,
+            y: b.y,
+            vx: Math.cos(angle) * 95,
+            vy: Math.sin(angle) * 95,
+            r: 17,
+            destructible: true,
+            hp: 10,
+            damageAmount: 2
+          });
+        }
+      }
+
+      if (b.rayTimer >= 10) {
+        b.rayTimer = 0;
+        state.realityRays.push(createRandomRealityRay(now));
+        state.realityRays.push(createRandomRealityRay(now));
+      }
+
+      for (let i = state.realityRays.length - 1; i >= 0; i -= 1) {
+        const ray = state.realityRays[i];
+        if (now > ray.strikeUntil) {
+          state.realityRays.splice(i, 1);
+          continue;
+        }
+
+        if (now >= ray.warnUntil) {
+          const dBeam = pointSegmentDistance(player.x, player.y, ray.x1, ray.y1, ray.x2, ray.y2);
+          if (dBeam <= player.radius + 12) {
+            applyDamage(now, ray.damage || 2);
+          }
+        }
+      }
+
+      for (let j = state.bullets.length - 1; j >= 0; j -= 1) {
+        const bullet = state.bullets[j];
+        if (distSq(bullet, b) < (bullet.r + b.radius) ** 2) {
+          state.bullets.splice(j, 1);
+          b.hp -= 1;
+          if (b.hp <= 0) {
+            resolveBossDefeat(now);
+            return;
+          }
+        }
+      }
+
+      if (distSq(b, player) < (b.radius + player.radius) ** 2) {
+        applyDamage(now, 2);
+      }
+
+      return;
+    }
+
     const dx = player.x - b.x;
     const dy = player.y - b.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -1926,11 +2110,7 @@ function updateEnemies(dt, now) {
         state.bullets.splice(j, 1);
         b.hp -= 1;
         if (b.hp <= 0) {
-          state.boss = null;
-          state.running = false;
-          state.win = true;
-          state.endedAt = now;
-          statusTextEl.textContent = 'Estado: Victoria total';
+          resolveBossDefeat(now);
           return;
         }
       }
@@ -1990,15 +2170,40 @@ function updateEnemies(dt, now) {
     if (!e) {
       continue;
     }
-    const dx = player.x - e.x;
-    const dy = player.y - e.y;
-    const d = Math.hypot(dx, dy) || 1;
+    if (e.kind === 'viperBoss') {
+      e.tackleTimer += dt;
+      if (e.tackleTimer >= 6) {
+        e.tackleTimer = 0;
+        e.tackleUntil = now + 850;
+        const tdx = player.x - e.x;
+        const tdy = player.y - e.y;
+        const td = Math.hypot(tdx, tdy) || 1;
+        e.vx = tdx / td;
+        e.vy = tdy / td;
+      }
 
-    e.x += (dx / d) * e.speed * dt;
-    e.y += (dy / d) * e.speed * dt;
+      const activeTackle = now < e.tackleUntil;
+      const moveSpeed = activeTackle ? 420 : e.speed;
+      e.x += e.vx * moveSpeed * dt;
+      e.y += e.vy * moveSpeed * dt;
 
-    for (const obstacle of state.obstacles) {
-      resolveCircleObstacle(e, e.radius, obstacle);
+      if (e.x <= e.radius || e.x >= canvas.width - e.radius) {
+        e.vx *= -1;
+      }
+      if (e.y <= e.radius || e.y >= canvas.height - e.radius) {
+        e.vy *= -1;
+      }
+    } else {
+      const dx = player.x - e.x;
+      const dy = player.y - e.y;
+      const d = Math.hypot(dx, dy) || 1;
+
+      e.x += (dx / d) * e.speed * dt;
+      e.y += (dy / d) * e.speed * dt;
+
+      for (const obstacle of state.obstacles) {
+        resolveCircleObstacle(e, e.radius, obstacle);
+      }
     }
 
     e.x = clamp(e.x, e.radius, canvas.width - e.radius);
@@ -2036,8 +2241,9 @@ function updateEnemies(dt, now) {
 
     const touch = distSq(aliveEnemy, player) < (aliveEnemy.radius + player.radius) ** 2;
     if (touch) {
-      applyDamage(now);
-      if (aliveEnemy.kind !== 'miniBoss') {
+      const touchDamage = aliveEnemy.kind === 'viperBoss' && now < aliveEnemy.tackleUntil ? 2 : 1;
+      applyDamage(now, touchDamage);
+      if (aliveEnemy.kind !== 'miniBoss' && aliveEnemy.kind !== 'viperBoss') {
         state.enemies.splice(i, 1);
       }
     }
@@ -2246,7 +2452,21 @@ function drawBullets() {
 
 function drawEnemyBullets() {
   for (const b of state.enemyBullets) {
-    if (b.homing) {
+    if ((b.hp || 0) >= 10) {
+      ctx.beginPath();
+      const orb = ctx.createRadialGradient(b.x - b.r * 0.2, b.y - b.r * 0.2, 2, b.x, b.y, b.r + 4);
+      orb.addColorStop(0, '#ffe5c1');
+      orb.addColorStop(0.65, '#ff8a4e');
+      orb.addColorStop(1, '#8f2f18');
+      ctx.fillStyle = orb;
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 228, 178, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.arc(b.x, b.y, b.r + 1.5, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (b.homing) {
       ctx.beginPath();
       ctx.fillStyle = '#ff7f35';
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
@@ -2339,6 +2559,65 @@ function drawEnemies() {
       ctx.fillRect(e.x - barW / 2, e.y - e.radius - 14, barW, barH);
       ctx.fillStyle = '#ffcb53';
       ctx.fillRect(e.x - barW / 2, e.y - e.radius - 14, barW * ratio, barH);
+      continue;
+    }
+
+    if (e.kind === 'viperBoss') {
+      const tackleOn = performance.now() < e.tackleUntil;
+      const angle = Math.atan2(e.vy || 0, e.vx || 1);
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.rotate(angle);
+
+      const bodyGradient = ctx.createLinearGradient(-e.radius, 0, e.radius, 0);
+      bodyGradient.addColorStop(0, '#2cf880');
+      bodyGradient.addColorStop(0.6, '#0e8b42');
+      bodyGradient.addColorStop(1, '#065425');
+      ctx.fillStyle = bodyGradient;
+
+      ctx.beginPath();
+      ctx.moveTo(e.radius, 0);
+      ctx.lineTo(e.radius * 0.1, -e.radius * 0.58);
+      ctx.lineTo(-e.radius * 0.95, -e.radius * 0.42);
+      ctx.lineTo(-e.radius * 1.1, 0);
+      ctx.lineTo(-e.radius * 0.95, e.radius * 0.42);
+      ctx.lineTo(e.radius * 0.1, e.radius * 0.58);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = tackleOn ? '#fff0a0' : '#91ffbe';
+      ctx.lineWidth = tackleOn ? 4 : 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#e8ffef';
+      ctx.beginPath();
+      ctx.arc(e.radius * 0.36, -e.radius * 0.16, e.radius * 0.14, 0, Math.PI * 2);
+      ctx.arc(e.radius * 0.36, e.radius * 0.16, e.radius * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0b2d17';
+      ctx.beginPath();
+      ctx.arc(e.radius * 0.38, -e.radius * 0.16, e.radius * 0.07, 0, Math.PI * 2);
+      ctx.arc(e.radius * 0.38, e.radius * 0.16, e.radius * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (tackleOn) {
+        ctx.strokeStyle = 'rgba(255, 235, 150, 0.75)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-e.radius * 1.25, 0);
+        ctx.lineTo(-e.radius * 1.7, 0);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      const barW = e.radius * 2;
+      const barH = 5;
+      const ratio = e.hp / e.maxHp;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 13, barW, barH);
+      ctx.fillStyle = '#63ff99';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 13, barW * ratio, barH);
       continue;
     }
 
@@ -2469,6 +2748,96 @@ function drawBoss() {
   }
 
   const b = state.boss;
+
+  if (b.kind === 'realityBoss') {
+    const t = performance.now() * 0.0024;
+    const wobble = 1 + Math.sin(t * 3.4) * 0.08;
+
+    for (const ray of state.realityRays) {
+      const active = performance.now() >= ray.warnUntil;
+      ctx.beginPath();
+      ctx.moveTo(ray.x1, ray.y1);
+      ctx.lineTo(ray.x2, ray.y2);
+      if (active) {
+        ctx.strokeStyle = 'rgba(255, 110, 70, 0.92)';
+        ctx.lineWidth = 14;
+      } else {
+        ctx.strokeStyle = 'rgba(255, 230, 130, 0.56)';
+        ctx.lineWidth = 4;
+      }
+      ctx.stroke();
+
+      if (active) {
+        ctx.beginPath();
+        ctx.moveTo(ray.x1, ray.y1);
+        ctx.lineTo(ray.x2, ray.y2);
+        ctx.strokeStyle = 'rgba(255, 255, 200, 0.64)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    }
+
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.beginPath();
+    for (let i = 0; i < 18; i += 1) {
+      const a = (Math.PI * 2 * i) / 18;
+      const r = b.radius * wobble * (0.9 + Math.sin(t * 7 + i * 0.8) * 0.1);
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r * 0.82;
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.closePath();
+    const body = ctx.createRadialGradient(-24, -16, 8, 0, 0, b.radius);
+    body.addColorStop(0, '#ffd2c8');
+    body.addColorStop(0.65, '#cc4f66');
+    body.addColorStop(1, '#6d1c35');
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 199, 210, 0.9)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    const eyeOffset = b.radius * 0.22;
+    ctx.fillStyle = '#ffeccf';
+    ctx.beginPath();
+    ctx.arc(-eyeOffset, -8, b.radius * 0.14, 0, Math.PI * 2);
+    ctx.arc(eyeOffset, -8, b.radius * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#210f15';
+    ctx.beginPath();
+    ctx.arc(-eyeOffset, -8, b.radius * 0.07, 0, Math.PI * 2);
+    ctx.arc(eyeOffset, -8, b.radius * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    if (realityBossImage.complete && realityBossImage.naturalWidth > 0) {
+      const w = Math.min(canvas.width * 0.36, 360);
+      const h = w * (realityBossImage.naturalHeight / realityBossImage.naturalWidth);
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(realityBossImage, canvas.width * 0.5 - w * 0.5, 34, w, h);
+      ctx.restore();
+    }
+
+    const barW = 280;
+    const barH = 16;
+    const ratio = b.hp / b.maxHp;
+    const x = canvas.width * 0.5 - barW * 0.5;
+    const y = 16;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(x, y, barW, barH);
+    ctx.fillStyle = '#ff7895';
+    ctx.fillRect(x, y, barW * ratio, barH);
+    ctx.strokeStyle = '#ffd3dc';
+    ctx.strokeRect(x, y, barW, barH);
+    return;
+  }
+
   const t = performance.now() * 0.003;
   const eyeDir = Math.atan2(player.y - b.y, player.x - b.x);
   const pupilOffset = b.radius * 0.22;
@@ -2678,7 +3047,7 @@ function drawGameOver() {
 
   ctx.font = '18px Consolas, monospace';
   ctx.fillText(`Puntos finales: ${state.score}`, canvas.width / 2, canvas.height / 2 + 8);
-  ctx.fillText(state.win ? 'Has derrotado al jefe final' : 'Presiona R para reiniciar · ESC menu', canvas.width / 2, canvas.height / 2 + 38);
+  ctx.fillText(state.win ? 'Has derrotado al jefe final y LA TRELAIDAD' : 'Presiona R para reiniciar · ESC menu', canvas.width / 2, canvas.height / 2 + 38);
   if (state.win) {
     ctx.fillText('Presiona R para jugar otra vez · ESC menu', canvas.width / 2, canvas.height / 2 + 66);
   }
@@ -2720,7 +3089,7 @@ function renderBonusList(now) {
 
 function updateHUD(now) {
   scoreEl.textContent = String(state.score);
-  waveEl.textContent = String(state.wave);
+  waveEl.textContent = state.waveLabel || String(state.wave);
   livesEl.textContent = String(Math.max(0, state.lives));
   killsEl.textContent = String(state.kills);
   if (timerEl) {
@@ -2730,7 +3099,10 @@ function updateHUD(now) {
   }
 
   if (waveProgressCounterEl) {
-    if (state.wave >= 10) {
+    if (state.boss && state.boss.kind === 'realityBoss') {
+      const left = Math.max(0, Math.ceil(10 - (state.boss.rayTimer || 0)));
+      waveProgressCounterEl.textContent = `LA TRELAIDAD · RAYOS EN ${left}s`;
+    } else if (state.wave >= 10) {
       waveProgressCounterEl.textContent = state.boss ? 'JEFE FINAL ACTIVO' : 'OLEADA 10: APARECE EL JEFE';
     } else {
       const killsForNextWave = state.wave * 30;
